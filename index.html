@@ -29,36 +29,50 @@
       </header>
       <section>
         <h1>
-<a id="post-render-utility-for-handlebars" class="anchor" href="#post-render-utility-for-handlebars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Post-render Utility for Handlebars</h1>
+<a id="post-render-utilities-for-handlebars" class="anchor" href="#post-render-utilities-for-handlebars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Post-render utilities for Handlebars</h1>
 
-<p>Use <code>postHandlebars</code> to trigger a function when a template is rendered and the <code>watch</code> module to get access to the node that gets created when the HTML is added to the document.</p>
+<p>Main features:</p>
 
-<p>This makes it possible to, for example, attach event handlers directly to templates and partials without knowing where in the DOM templates get added or in which templates partials will be included. Effectively eliminates the need for the event delegate pattern and lowers coupling between the views.</p>
+<ul>
+<li>
+<p>The <code>renderer</code> helper enables one way data binding to templates and partials.</p>
 
-<p>See <code>example.html</code> for more usage examples.</p>
+<p>Wrap your function with <code>createRenderer</code> and call it to update rendered output. You don't even have to wait for the template to be inserted to the DOM.</p>
+</li>
+<li>
+<p>The <code>registerActivator</code> function creates a callback triggered when template is inserted to the DOM.</p>
+
+<p>You'll get access to the DOM node and this makes it possible to, for example, attach event handlers directly to templates and partials without knowing where in the DOM they end up or in which templates partials will be included. Effectively eliminates the need for the event delegate pattern and lowers coupling between the views.</p>
+</li>
+<li><p>The <code>registerPostRender</code> function creates a callback triggered when a template is rendered to a string.</p></li>
+</ul>
+
+<p>Dependencies:</p>
+
+<p>Uses MutationObserver, see webcomponents-lite for a polyfill.</p>
+
+<p><strong>See <a href="http://ekuusela.github.io/post-render-bars/example/example.html">example.html for a demo</a> and usage examples.</strong></p>
+
+<h2>
+<a id="posthandlebarsjs" class="anchor" href="#posthandlebarsjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>postHandlebars.js</h2>
+
+<p>Module for triggering functions after Handlebars templates or partials are rendered or added to the document.</p>
+
+<pre><code>// assume we have a pre-compiled template called 'content'
+postHandlebars.registerPostRender('content', function(str) { return str.toUpperCase(); });
+console.log(Handlebars.templates['content']({body: 'here is the content'})); // outputs the rendered template in all capitals
+</code></pre>
 
 <h2>
 <a id="watchjs" class="anchor" href="#watchjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>watch.js</h2>
 
 <p>Defines a function that watches for a piece of HTML to get added to the document.</p>
 
-<p>Uses MutationObserver, see webcomponents-lite for a polyfill.</p>
-
 <pre><code>var clickHandler = function() { console.log('clicked', this); };
 var watchedHtml = watch.forHtml('&lt;button&gt;click me&lt;/button&gt;', function(element) {
     element.addEventListener('click', clickHandler);
 });
 document.body.innerHTML = watchedHtml; // results in a button with the click handler defined above
-</code></pre>
-
-<h2>
-<a id="posthandlebarsjs" class="anchor" href="#posthandlebarsjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>postHandlebars.js</h2>
-
-<p>Module for triggering functions after Handlebars templates or partials are rendered.</p>
-
-<pre><code>// assume we have a pre-compiled template called 'content'
-postHandlebars.registerPostRender('content', function(str) { return str.toUpperCase(); });
-console.log(Handlebars.templates['content']({body: 'here is the content'})); // outputs the rendered template in all capitals
 </code></pre>
       </section>
       <footer>
