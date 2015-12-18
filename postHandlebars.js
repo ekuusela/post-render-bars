@@ -75,6 +75,72 @@
         };
     }
     
+    /**
+     * Creates and returns a renderer function to be used together with the renderer helper.
+     *
+     * Pass in the renderer to a Handlebars template and use it as an argument for the renderer helper.
+     * Invoking the renderer then causes the element contents to be updated with the return value of the given callback.
+     *
+     * The renderer can be invoked multiple times before or after the template has been added to the DOM.
+     *
+     * @param {function(): string} getHtmlContentFn
+     * @return {function()} renderer
+     */
+    function createRenderer(getHtmlContentFn) {
+        var renderer = function() {
+            var html = getHtmlContentFn();
+            if (renderer.node) {
+                doRender(html);
+            } else {
+                renderer.earlyRenderedHtml = html;
+            }
+        };
+        var doRender = function(html) {
+            renderer.node.innerHTML = html;
+        };
+        Object.defineProperty(renderer, '_node', {
+            writable: true
+        });
+        Object.defineProperty(renderer, 'node', {
+            get: function() { return this._node; },
+            set: function(value) {
+                this._node = value;
+                if (this.earlyRenderedHtml) {
+                    doRender(this.earlyRenderedHtml);
+                }
+            }
+        });
+        return renderer;
+    }
+
+    /**
+     * Helper for creating HTML nodes that can have their content updated by executing a callback.
+     *
+     * Can be used as a regular or a block helper.
+     * In block mode, the contents of the first element in the block will be replaced with the renderer function's return value whenever that renderer gets invoked.
+     * When used as regular helper, or if the block contents are omitted, behaves as if used in block mode with the content set to '<div></div>'.
+     *
+     * Note: using this helper makes sense only for HTML content intended to be viewed in a DOM.
+     *
+     * @param {function(): string} renderer a function created by the createRenderer function
+     */
+    function rendererHelper(renderer, options) {
+        if (typeof renderer !== 'function') { throw 'Expected a function as the first argument'; }
+        var placeholderHtml;
+        if (options.fn) {
+            placeholderHtml = options.fn(this);
+        }
+        if (!placeholderHtml) {
+            placeholderHtml = '<div></div>';
+        }
+
+        return new Handlebars.SafeString(watch.forHtml(placeholderHtml, function(node) {
+            renderer.node = node;
+        }));
+    }
+
+    Handlebars.registerHelper('renderer', rendererHelper);
+    
     function setDefaultTargets() {
         if (Handlebars) {
             if (Handlebars.templates) {
@@ -103,10 +169,11 @@
         }
         return renderedString;
     }
-    
+        
     return {
         applyPostRendersIn:applyPostRendersIn,
         registerPostRender:registerPostRender,
-        appendPostRenderFn:appendPostRenderFn
+        appendPostRenderFn:appendPostRenderFn,
+        createRenderer:createRenderer
     };
 }));

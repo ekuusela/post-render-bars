@@ -1,7 +1,7 @@
 <html>
 	<head>
 	   	<script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
-		<script src="lib/handlebars-v3.0.3.js"></script>
+		<script src="lib/handlebars-v4.0.5.js"></script>
 		<script src="templates/templates.js"></script>
 		<script src="../postHandlebars.js"></script>
 		<script src="../watch.js"></script>
@@ -19,6 +19,11 @@
 		<div id="example2b"></div>
 		<script id="italics-template" type="text/x-handlebars-template">
 			this will be in italics: <i>{{content}}</i>
+		</script>
+        <h2>Example 3</h2>
+        <div id="example3"></div>
+        <script id="dynamic-template" type="text/x-handlebars-template">
+			this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
 		</script>
 		<script type="text/javascript">
 			/**
@@ -64,7 +69,7 @@
 				
 			// Example 2a: using templates compiled at runtime
 			postHandlebars.registerPostRender('italics-template', replaceContent);
-			Handlebars.templates['italics-template'] = Handlebars.compile(document.getElementById('italics-template').innerHTML)
+			Handlebars.templates['italics-template'] = Handlebars.compile(document.getElementById('italics-template').innerHTML);
 			var italicsAContainer = document.getElementById('example2a');
 			italicsAContainer.innerHTML = Handlebars.templates['italics-template']({content: 'content'});
 			
@@ -74,6 +79,15 @@
 			templateB = postHandlebars.appendPostRenderFn(templateB, allCaps);
 			var italicsBContainer = document.getElementById('example2b');
 			italicsBContainer.innerHTML = templateB({content: 'content'});	
+            
+            // Example 3: updating content in a handlebars template after rendering it
+            Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
+            var dynamicContainer = document.getElementById('example3');
+            var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
+            dynamicContainer.innerHTML = Handlebars.templates['dynamic-template']({time: timeRenderer});
+            setInterval(timeRenderer, 2000);
+
+            
 		</script>
 	</body>
 </html>
