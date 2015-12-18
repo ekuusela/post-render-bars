@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>post-render-bars by ekuusela</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>post-render-bars</h1>
+        <p>Add event handlers to handlebars templates and update templated content after rendering</p>
+
+        <p class="view"><a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/ekuusela/post-render-bars/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/ekuusela/post-render-bars/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/ekuusela/post-render-bars">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="post-render-utility-for-handlebars" class="anchor" href="#post-render-utility-for-handlebars" aria-hidden="true"><span class="octicon octicon-link"></span></a>Post-render Utility for Handlebars</h1>
+
+<p>Use <code>postHandlebars</code> to trigger a function when a template is rendered and the <code>watch</code> module to get access to the node that gets created when the HTML is added to the document.</p>
+
+<p>This makes it possible to, for example, attach event handlers directly to templates and partials without knowing where in the DOM templates get added or in which templates partials will be included. Effectively eliminates the need for the event delegate pattern and lowers coupling between the views.</p>
+
+<p>See <code>example.html</code> for more usage examples.</p>
+
+<h2>
+<a id="watchjs" class="anchor" href="#watchjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>watch.js</h2>
+
+<p>Defines a function that watches for a piece of HTML to get added to the document.</p>
+
+<p>Uses MutationObserver, see webcomponents-lite for a polyfill.</p>
+
+<pre><code>var clickHandler = function() { console.log('clicked', this); };
+var watchedHtml = watch.forHtml('&lt;button&gt;click me&lt;/button&gt;', function(element) {
+    element.addEventListener('click', clickHandler);
+});
+document.body.innerHTML = watchedHtml; // results in a button with the click handler defined above
+</code></pre>
+
+<h2>
+<a id="posthandlebarsjs" class="anchor" href="#posthandlebarsjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>postHandlebars.js</h2>
+
+<p>Module for triggering functions after Handlebars templates or partials are rendered.</p>
+
+<pre><code>// assume we have a pre-compiled template called 'content'
+postHandlebars.registerPostRender('content', function(str) { return str.toUpperCase(); });
+console.log(Handlebars.templates['content']({body: 'here is the content'})); // outputs the rendered template in all capitals
+</code></pre>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/ekuusela">ekuusela</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
