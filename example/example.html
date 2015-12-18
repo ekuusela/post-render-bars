@@ -7,12 +7,13 @@
         <script src="../postHandlebars.js"></script>
         <style>
             body { font-family: sans-serif; }
+            .result { background-color: #eee; }
             h2 { color: #555; }
         </style>
     </head>
     <body>
         <h2>Example 1</h2>
-        <p>View source for comments.</p>
+        <p>View source for comments and details.</p>
         <p><a href="templates/list.handlebars">list.handlebars</a> is a template used for rendering multiple entries using the <a href="templates/entry.handlebars">entry.handlebars</a> partial. We use <code>postHandlebars</code> for two things:
         <p>
         - add click handler to the entry partial every time its used<br>
@@ -28,19 +29,22 @@
         }
         </pre></code></p>
         <p>and get the result:<p>
-        <div id="example1"></div>
+        <div id="example1" class="result"></div>
         
         <h2>Example 2a</h2>
-        <div id="example2a"></div>
+        <p>using templates compiled at runtime</p>
+        <div id="example2a" class="result"></div>
         
         <h2>Example 2b</h2>
-        <div id="example2b"></div>
+        <p>using templates compiled at runtime, alternative</p>
+        <div id="example2b" class="result"></div>
         <script id="italics-template" type="text/x-handlebars-template">
             this will be in italics: <i>{{content}}</i>
         </script>
         
         <h2>Example 3</h2>
-        <div id="example3"></div>
+        <p>updating content in a template after rendering it</p>
+        <div id="example3" class="result"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
             this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
         </script>
@@ -55,7 +59,7 @@
             Handlebars.partials = Handlebars.templates;
 
             // Example 1: add some post render functions to pre-compiled templates
-            // these were compiled by executing
+            // these templates were compiled by executing
             // handlebars *.handlebars -f templates.js
             postHandlebars.registerPostRender('list', replaceMy);
             postHandlebars.registerPostRender('entry', allCaps);
@@ -77,20 +81,20 @@
                     ]
                 });
                 
-            // Example 2a: using templates compiled at runtime
+            // Example 2a: templates compiled at runtime
             postHandlebars.registerPostRender('italics-template', replaceContent);
             Handlebars.templates['italics-template'] = Handlebars.compile(document.getElementById('italics-template').innerHTML);
             var italicsAContainer = document.getElementById('example2a');
             italicsAContainer.innerHTML = Handlebars.templates['italics-template']({content: 'content'});
             
-            // Example 2b: using templates compiled at runtime, alternative
+            // Example 2b: templates compiled at runtime, alternative
             var source = document.getElementById('italics-template').innerHTML;
             var templateB = Handlebars.compile(source);
             templateB = postHandlebars.appendPostRenderFn(templateB, allCaps);
             var italicsBContainer = document.getElementById('example2b');
             italicsBContainer.innerHTML = templateB({content: 'content'});    
             
-            // Example 3: updating content in a handlebars template after rendering it
+            // Example 3: updating content in a template after rendering it
             Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
             var dynamicContainer = document.getElementById('example3');
             var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
