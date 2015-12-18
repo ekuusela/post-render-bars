@@ -6,7 +6,8 @@
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
         <style>
-            body { font-family: sans-serif; }
+            body { font-family: sans-serif; font-size: 16px; }
+            code { font-size: 14px; }
             .result { background-color: #eee; }
             h2 { color: #555; }
         </style>
@@ -43,7 +44,7 @@
         </script>
         
         <h2>Example 3</h2>
-        <p>updating content in a template after rendering it</p>
+        <p>using <code>renderer</code> helper to update content in a template after rendering it</p>
         <div id="example3" class="result"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
             this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
@@ -94,7 +95,7 @@
             var italicsBContainer = document.getElementById('example2b');
             italicsBContainer.innerHTML = templateB({content: 'content'});    
             
-            // Example 3: updating content in a template after rendering it
+            // Example 3: using renderer helper to update content in a template after rendering it
             Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
             var dynamicContainer = document.getElementById('example3');
             var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
