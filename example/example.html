@@ -12,19 +12,30 @@
 	</head>
 	<body>
 		<h2>Example 1</h2>
+        <p>View source for comments.</p>
+        <p><a href="templates/list.handlebars">list.handlebars</a></code> is a template used for rendering multiple items using the <code><a href="templates/entry.handlebars">entry.handlebars</a></code> partial. We use postHandlebars for two things:
+        <p>
+        - add click handler to the entry partial every time its used.<br>
+        - replace the word "my" with the word "your" in the entire rendered output<br>
+        </p>
+        <p>Result:<p>
 		<div id="example1"></div>
+        
 		<h2>Example 2a</h2>
 		<div id="example2a"></div>
+        
 		<h2>Example 2b</h2>
 		<div id="example2b"></div>
 		<script id="italics-template" type="text/x-handlebars-template">
 			this will be in italics: <i>{{content}}</i>
 		</script>
+        
         <h2>Example 3</h2>
         <div id="example3"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
 			this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
 		</script>
+        
 		<script type="text/javascript">
 			/**
 			 * Registers the function argument as a callback to be invoked after the template HTML has been added to DOM.
@@ -46,7 +57,7 @@
 			// register everything as partials
 			Handlebars.partials = Handlebars.templates;
 
-			// Example 1: using pre-compiled templates 
+			// Example 1: add some post render functions to pre-compiled templates 
 			postHandlebars.registerPostRender('list', replaceMy);
 			postHandlebars.registerPostRender('entry', allCaps);
 			
