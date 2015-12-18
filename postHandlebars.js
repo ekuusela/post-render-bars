@@ -27,8 +27,8 @@
      * Registered functions with template names as keys.
      */
     var postRenderFns = {};
-	
-	/**
+    
+    /**
      * Registers the given object as a container of compiled templates that we wish to target with the post render functions.
      * 
      * When registering post render functions they are registered only for templates that have been included with this function.
@@ -36,8 +36,8 @@
     function applyPostRendersIn(templates) {
         postRenderTargets.push(templates);
     }
-	
-	/**
+    
+    /**
      * Registers a function to be executed after the given template has been rendered to a string.
      *
      * The callback receives the rendered string as an argument.
@@ -62,18 +62,18 @@
         postRenderTargets.forEach(register)
         postRenderFns[templateName] = fn;
     }
-	
-	/**
+    
+    /**
      * Appends a function to a compiled template.
      */
-	function appendPostRenderFn(compiledTemplate, fn) {
-	    var original = compiledTemplate;
-		return function() { 
-			var result = original.apply(this, arguments);
-			result = fn(result);
-			return result;
-		};
-	}
+    function appendPostRenderFn(compiledTemplate, fn) {
+        var original = compiledTemplate;
+        return function() { 
+            var result = original.apply(this, arguments);
+            result = fn(result);
+            return result;
+        };
+    }
     
     function setDefaultTargets() {
         if (Handlebars) {
@@ -85,18 +85,18 @@
             }
         }
     }
-	
-	/**
-	 * Appends a function to a compiled template that applies any registered post render functions when the template is rendered.
-	 */
-	function appendPostRenderApplyFn(compiledTemplate, templateName) {
-		return appendPostRenderFn(compiledTemplate, function(result) { return applyPostRender(templateName, result); });
-	    
-	}
+    
+    /**
+     * Appends a function to a compiled template that applies any registered post render functions when the template is rendered.
+     */
+    function appendPostRenderApplyFn(compiledTemplate, templateName) {
+        return appendPostRenderFn(compiledTemplate, function(result) { return applyPostRender(templateName, result); });
+        
+    }
 
     /**
-	 * Applies any registered post render functions to the given string.
-	 */
+     * Applies any registered post render functions to the given string.
+     */
     function applyPostRender(templateName, renderedString) {
         if (typeof postRenderFns[templateName] === 'function') {
             return postRenderFns[templateName](renderedString);
@@ -104,9 +104,9 @@
         return renderedString;
     }
     
-	return {
+    return {
         applyPostRendersIn:applyPostRendersIn,
         registerPostRender:registerPostRender,
-		appendPostRenderFn:appendPostRenderFn
+        appendPostRenderFn:appendPostRenderFn
     };
 }));
