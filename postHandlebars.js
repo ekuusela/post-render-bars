@@ -6,17 +6,17 @@
  (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['handlebars'], factory);
+        define(['handlebars', 'watch'], factory);
     } else if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
         // only CommonJS-like environments that support module.exports,
         // like Node.
-        module.exports = factory(require('handlebars'));
+        module.exports = factory(require('handlebars', 'watch'));
     } else {
         // Browser globals (root is window)
-        root.postHandlebars = factory(root.Handlebars);
+        root.postHandlebars = factory(root.Handlebars, root.watch);
     }
-}(this, function (Handlebars) {
+}(this, function (Handlebars, watch) {
 
     /**
      * List of objects that contain (or will contain) compiled Handlebars templates with template names as keys. 
@@ -141,6 +141,18 @@
 
     Handlebars.registerHelper('renderer', rendererHelper);
     
+    /**
+     * Registers the function argument as a callback to be invoked after the template HTML has been added to DOM.
+     *
+     * The callback gets a single argument: the first element defined in the template
+     */
+    var registerActivator = function(templateName, fn) {
+        var activator = function(html) {
+            return watch.forHtml(html, fn);
+        };
+        registerPostRender(templateName, activator);
+    }
+    
     function setDefaultTargets() {
         if (Handlebars) {
             if (Handlebars.templates) {
@@ -171,9 +183,10 @@
     }
         
     return {
-        applyPostRendersIn:applyPostRendersIn,
+        createRenderer:createRenderer,
+        registerActivator:registerActivator,
         registerPostRender:registerPostRender,
         appendPostRenderFn:appendPostRenderFn,
-        createRenderer:createRenderer
+        applyPostRendersIn:applyPostRendersIn
     };
 }));

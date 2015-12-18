@@ -1,95 +1,94 @@
 <html>
-	<head>
-	   	<script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
-		<script src="lib/handlebars-v4.0.5.js"></script>
-		<script src="templates/templates.js"></script>
-		<script src="../postHandlebars.js"></script>
-		<script src="../watch.js"></script>
-		<style>
-		    body { font-family: sans-serif; }
-			h2 { color: #555; }
-		</style>
-	</head>
-	<body>
-		<h2>Example 1</h2>
+    <head>
+           <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
+        <script src="lib/handlebars-v4.0.5.js"></script>
+        <script src="templates/templates.js"></script>
+        <script src="../watch.js"></script>
+        <script src="../postHandlebars.js"></script>
+        <style>
+            body { font-family: sans-serif; }
+            h2 { color: #555; }
+        </style>
+    </head>
+    <body>
+        <h2>Example 1</h2>
         <p>View source for comments.</p>
-        <p><a href="templates/list.handlebars">list.handlebars</a> is a template used for rendering multiple items using the <a href="templates/entry.handlebars">entry.handlebars</a> partial. We use postHandlebars for two things:
+        <p><a href="templates/list.handlebars">list.handlebars</a> is a template used for rendering multiple entries using the <a href="templates/entry.handlebars">entry.handlebars</a> partial. We use <code>postHandlebars</code> for two things:
         <p>
-        - add click handler to the entry partial every time its used.<br>
+        - add click handler to the entry partial every time its used<br>
         - replace the word "my" with the word "your" in the entire rendered output<br>
         </p>
-        <p>Result:<p>
-		<div id="example1"></div>
+        <p>We pass in:<br><code><pre>
+        {
+            title: 'this is my list',
+            entries: [
+                {title: 'Here is my title', body: 'and my button'}, 
+                {title: 'Here is my 2nd title', body: 'and my 2nd button'}
+            ]
+        }
+        </pre></code></p>
+        <p>and get the result:<p>
+        <div id="example1"></div>
         
-		<h2>Example 2a</h2>
-		<div id="example2a"></div>
+        <h2>Example 2a</h2>
+        <div id="example2a"></div>
         
-		<h2>Example 2b</h2>
-		<div id="example2b"></div>
-		<script id="italics-template" type="text/x-handlebars-template">
-			this will be in italics: <i>{{content}}</i>
-		</script>
+        <h2>Example 2b</h2>
+        <div id="example2b"></div>
+        <script id="italics-template" type="text/x-handlebars-template">
+            this will be in italics: <i>{{content}}</i>
+        </script>
         
         <h2>Example 3</h2>
         <div id="example3"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
-			this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
-		</script>
+            this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
+        </script>
         
-		<script type="text/javascript">
-			/**
-			 * Registers the function argument as a callback to be invoked after the template HTML has been added to DOM.
-			 *
-			 * The callback gets a single argument: the first element defined in the template
-			 */
-			var registerActivator = function(templateName, fn) {
-				var activator = function(html) {
-					return watch.forHtml(html, fn);
-				};
-				postHandlebars.registerPostRender(templateName, activator);
-			}
-		
-			// create some post render functions
-			var allCaps = function(html) { return html.toUpperCase(); };
-			var replaceMy = function(html) { return html.replace(/my/gi, 'your') };
-			var replaceContent = function(html) { return html.replace(/content/gi, 'replaced content') };
+        <script type="text/javascript">
+            // create some post render functions
+            var allCaps = function(html) { return html.toUpperCase(); };
+            var replaceMy = function(html) { return html.replace(/my/gi, 'your') };
+            var replaceContent = function(html) { return html.replace(/content/gi, 'replaced content') };
 
-			// register everything as partials
-			Handlebars.partials = Handlebars.templates;
+            // register everything as partials
+            Handlebars.partials = Handlebars.templates;
 
-			// Example 1: add some post render functions to pre-compiled templates 
-			postHandlebars.registerPostRender('list', replaceMy);
-			postHandlebars.registerPostRender('entry', allCaps);
-			
-			registerActivator('entry', function(element) {
-				var button = element.querySelectorAll('.counter')[0];
-				var i = 0;
-				button.addEventListener('click', function() {
-				    button.innerHTML = ++i;
-				});
-			});
-			
-			var listContainer = document.getElementById('example1');
-			listContainer.innerHTML = Handlebars.templates['list']({
-					title: 'this is my list',
-					items: [
-						{title: 'Here is my title', body: 'and my button'}, 
-						{title: 'Here is my 2nd title', body: 'and my 2nd button'}
-					]
-				});
-				
-			// Example 2a: using templates compiled at runtime
-			postHandlebars.registerPostRender('italics-template', replaceContent);
-			Handlebars.templates['italics-template'] = Handlebars.compile(document.getElementById('italics-template').innerHTML);
-			var italicsAContainer = document.getElementById('example2a');
-			italicsAContainer.innerHTML = Handlebars.templates['italics-template']({content: 'content'});
-			
-			// Example 2b: using templates compiled at runtime, alternative
-			var source = document.getElementById('italics-template').innerHTML;
-			var templateB = Handlebars.compile(source);
-			templateB = postHandlebars.appendPostRenderFn(templateB, allCaps);
-			var italicsBContainer = document.getElementById('example2b');
-			italicsBContainer.innerHTML = templateB({content: 'content'});	
+            // Example 1: add some post render functions to pre-compiled templates
+            // these were compiled by executing
+            // handlebars *.handlebars -f templates.js
+            postHandlebars.registerPostRender('list', replaceMy);
+            postHandlebars.registerPostRender('entry', allCaps);
+            
+            postHandlebars.registerActivator('entry', function(element) {
+                var button = element.querySelectorAll('.counter')[0];
+                var i = 0;
+                button.addEventListener('click', function() {
+                    button.innerHTML = ++i;
+                });
+            });
+            
+            var listContainer = document.getElementById('example1');
+            listContainer.innerHTML = Handlebars.templates['list']({
+                    title: 'this is my list',
+                    entries: [
+                        {title: 'Here is my title', body: 'and my button'}, 
+                        {title: 'Here is my 2nd title', body: 'and my 2nd button'}
+                    ]
+                });
+                
+            // Example 2a: using templates compiled at runtime
+            postHandlebars.registerPostRender('italics-template', replaceContent);
+            Handlebars.templates['italics-template'] = Handlebars.compile(document.getElementById('italics-template').innerHTML);
+            var italicsAContainer = document.getElementById('example2a');
+            italicsAContainer.innerHTML = Handlebars.templates['italics-template']({content: 'content'});
+            
+            // Example 2b: using templates compiled at runtime, alternative
+            var source = document.getElementById('italics-template').innerHTML;
+            var templateB = Handlebars.compile(source);
+            templateB = postHandlebars.appendPostRenderFn(templateB, allCaps);
+            var italicsBContainer = document.getElementById('example2b');
+            italicsBContainer.innerHTML = templateB({content: 'content'});    
             
             // Example 3: updating content in a handlebars template after rendering it
             Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
@@ -99,6 +98,6 @@
             setInterval(timeRenderer, 2000);
 
             
-		</script>
-	</body>
+        </script>
+    </body>
 </html>
