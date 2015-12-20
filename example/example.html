@@ -1,19 +1,25 @@
 <html>
     <head>
-           <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
+        <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
         <script src="lib/handlebars-v4.0.5.js"></script>
+
+         <!-- jquery or jquery ui are not needed but here to demonstrate jqinit helper -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+        <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" type="text/css">
+
         <script src="templates/templates.js"></script>
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
         <style>
             body { font-family: sans-serif; font-size: 16px; }
             code { font-size: 14px; }
-            .result { background-color: #eee; }
+            .result { background-color: #eee; margin-bottom: 4em }
             h2 { color: #555; }
         </style>
     </head>
     <body>
-        <h2>Example 1</h2>
+        <h2>Example 1: post render and activator </h2>
         <p>View source for comments and details.</p>
         <p><a href="templates/list.handlebars">list.handlebars</a> is a template used for rendering multiple entries using the <a href="templates/entry.handlebars">entry.handlebars</a> partial. We use <code>postHandlebars</code> for two things:
         <p>
@@ -24,32 +30,81 @@
         {
             title: 'this is my list',
             entries: [
-                {title: 'Here is my title', body: 'and my button'}, 
+                {title: 'Here is my title', body: 'and my button'},
                 {title: 'Here is my 2nd title', body: 'and my 2nd button'}
             ]
         }
         </pre></code></p>
         <p>and get the result:<p>
         <div id="example1" class="result"></div>
-        
-        <h2>Example 2a</h2>
+
+        <h2>Example 2a: post render function</h2>
         <p>using templates compiled at runtime</p>
         <div id="example2a" class="result"></div>
-        
-        <h2>Example 2b</h2>
+
+        <h2>Example 2b: post render function</h2>
         <p>using templates compiled at runtime, alternative</p>
         <div id="example2b" class="result"></div>
         <script id="italics-template" type="text/x-handlebars-template">
             this will be in italics: <i>{{content}}</i>
         </script>
-        
-        <h2>Example 3</h2>
+
+        <h2>Example 3: one way data-binding</h2>
         <p>using <code>renderer</code> helper to update content in a template after rendering it</p>
         <div id="example3" class="result"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
             this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
         </script>
-        
+
+        <h2>Example 4: initializing jquery plugin within a template</h2>
+        <p></p>
+        <div id="example4" class="result"></div>
+        <script id="accordion-template" type="text/x-handlebars-template">
+            <p>here is a plugin</p>
+            {{#jqinit 'accordion'}}
+            <div id="accordion">
+                <h3>Section 1</h3>
+                <div>
+                    <p>Mauris mauris ante, blandit et, ultrices a, suscipit eget, quam. Integer
+                    ut neque. Vivamus nisi metus</p>
+                </div>
+                <h3>Section 2</h3>
+                <div>
+                    <p>Sed non urna. Donec et ante. Phasellus eu ligula. Vestibulum sit amet
+                    purus. Vivamus hendrerit, dolor at aliquet laoreet, mauris turpis porttitor
+                    velit.</p>
+                </div>
+            </div>
+            {{/jqinit}}
+        </script>
+
+        <h2>Example 5: initializing jquery plugin with options within a template </h2>
+        <p></p>
+        <div id="example5" class="result"></div>
+        <script id="accordion-template-options" type="text/x-handlebars-template">
+            <p>here is a plugin with different options</p>
+            {{#jqinit 'accordion' '{
+                "icons": {
+                    "header": "ui-icon-circle-arrow-e",
+                    "activeHeader": "ui-icon-circle-arrow-s"
+                },
+                "collapsible": true
+                }'}}
+            <div>
+                <h3>Section 3</h3>
+                <div>
+                    <p>Mauris mauris ante</p>
+                </div>
+                <h3>Section 4</h3>
+                <div>
+                    <p>Sed non urna. Donec et ante. Phasellus eu ligula. Vestibulum sit amet
+                    purus. Vivamus hendrerit, dolor at aliquet laoreet, mauris turpis porttitor
+                    velit.</p>
+                </div>
+            </div>
+            {{/jqinit}}
+        </script>
+
         <script type="text/javascript">
             // create some post render functions
             var allCaps = function(html) { return html.toUpperCase(); };
@@ -63,8 +118,7 @@
             // these templates were compiled by executing
             // handlebars *.handlebars -f templates.js
             postHandlebars.registerPostRender('list', replaceMy);
-            postHandlebars.registerPostRender('entry', allCaps);
-            
+
             postHandlebars.registerActivator('entry', function(element) {
                 var button = element.querySelectorAll('.counter')[0];
                 var i = 0;
@@ -72,29 +126,29 @@
                     button.innerHTML = ++i;
                 });
             });
-            
+
             var listContainer = document.getElementById('example1');
             listContainer.innerHTML = Handlebars.templates['list']({
                     title: 'this is my list',
                     entries: [
-                        {title: 'Here is my title', body: 'and my button'}, 
+                        {title: 'Here is my title', body: 'and my button'},
                         {title: 'Here is my 2nd title', body: 'and my 2nd button'}
                     ]
                 });
-                
+
             // Example 2a: templates compiled at runtime
             postHandlebars.registerPostRender('italics-template', replaceContent);
             Handlebars.templates['italics-template'] = Handlebars.compile(document.getElementById('italics-template').innerHTML);
             var italicsAContainer = document.getElementById('example2a');
             italicsAContainer.innerHTML = Handlebars.templates['italics-template']({content: 'content'});
-            
+
             // Example 2b: templates compiled at runtime, alternative
             var source = document.getElementById('italics-template').innerHTML;
             var templateB = Handlebars.compile(source);
             templateB = postHandlebars.appendPostRenderFn(templateB, allCaps);
             var italicsBContainer = document.getElementById('example2b');
-            italicsBContainer.innerHTML = templateB({content: 'content'});    
-            
+            italicsBContainer.innerHTML = templateB({content: 'content'});
+
             // Example 3: using renderer helper to update content in a template after rendering it
             Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
             var dynamicContainer = document.getElementById('example3');
@@ -102,7 +156,16 @@
             dynamicContainer.innerHTML = Handlebars.templates['dynamic-template']({time: timeRenderer});
             setInterval(timeRenderer, 2000);
 
-            
+            // Example 4:
+            Handlebars.templates['accordion-template'] = Handlebars.compile(document.getElementById('accordion-template').innerHTML);
+            var jqinitTarget = document.getElementById('example4');
+            jqinitTarget.innerHTML = Handlebars.templates['accordion-template']();
+
+            // Example 5:
+            Handlebars.templates['accordion-template-options'] = Handlebars.compile(document.getElementById('accordion-template-options').innerHTML);
+            var jqinitOptionsTarget = document.getElementById('example5');
+            jqinitOptionsTarget.innerHTML = Handlebars.templates['accordion-template-options']();
+
         </script>
     </body>
 </html>

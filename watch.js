@@ -1,6 +1,6 @@
 /**
  * Defines a function that watches for a piece of HTML to get added to the document.
- * 
+ *
  * Uses MutationObserver, see webcomponents-lite for a polyfill.
  *
  * @author Eero Kuusela

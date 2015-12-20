@@ -1,6 +1,6 @@
 /**
  * Module for triggering functions after Handlebars templates or partials are rendered.
- * 
+ *
  * @author Eero Kuusela
  */
  (function (root, factory) {
@@ -17,26 +17,27 @@
         root.postHandlebars = factory(root.Handlebars, root.watch);
     }
 }(this, function (Handlebars, watch) {
+    'use strict';
 
     /**
-     * List of objects that contain (or will contain) compiled Handlebars templates with template names as keys. 
+     * List of objects that contain (or will contain) compiled Handlebars templates with template names as keys.
      */
     var postRenderTargets = [];
-    
+
     /**
      * Registered functions with template names as keys.
      */
     var postRenderFns = {};
-    
+
     /**
      * Registers the given object as a container of compiled templates that we wish to target with the post render functions.
-     * 
+     *
      * When registering post render functions they are registered only for templates that have been included with this function.
      */
     function applyPostRendersIn(templates) {
         postRenderTargets.push(templates);
     }
-    
+
     /**
      * Registers a function to be executed after the given template has been rendered to a string.
      *
@@ -62,19 +63,19 @@
         postRenderTargets.forEach(register)
         postRenderFns[templateName] = fn;
     }
-    
+
     /**
      * Appends a function to a compiled template.
      */
     function appendPostRenderFn(compiledTemplate, fn) {
         var original = compiledTemplate;
-        return function() { 
+        return function() {
             var result = original.apply(this, arguments);
             result = fn(result);
             return result;
         };
     }
-    
+
     /**
      * Creates and returns a renderer function to be used together with the renderer helper.
      *
@@ -138,9 +139,39 @@
             renderer.node = node;
         }));
     }
-
     Handlebars.registerHelper('renderer', rendererHelper);
-    
+
+    /**
+     * Block-helper for invoking a function on jquery wrapped element from a template after it's added to the DOM.
+     * 
+     * @param {string} fnName name of the jquery function to call
+     * @param {string} [argJson] optional JSON string that is parsed to an argument for the function.
+     */
+    function jqinitHelper(fnName/*[, argJson]*/) {
+        var options;
+        var argJson;
+        var initArg;
+        if (arguments.length > 2) {
+            // fnName, argJson, options
+            argJson = arguments[1];
+            initArg = JSON.parse(argJson);
+            options = arguments[2];
+        } else {
+            // fnName, options
+            options = arguments[1];
+        }
+        var htmlToInit = options.fn(this).trim();
+        return new Handlebars.SafeString(watch.forHtml(htmlToInit, function(element) {
+            if (initArg) {
+                $(element)[fnName](initArg);
+            } else {
+                $(element)[fnName]();
+            }
+            
+        }));
+    }
+    Handlebars.registerHelper('jqinit', jqinitHelper);
+
     /**
      * Registers the function argument as a callback to be invoked after the template HTML has been added to DOM.
      *
@@ -152,24 +183,24 @@
         };
         registerPostRender(templateName, activator);
     }
-    
+
     function setDefaultTargets() {
         if (Handlebars) {
             if (Handlebars.templates) {
                 applyPostRendersIn(Handlebars.templates);
-            }   
+            }
             if (Handlebars.templates !== Handlebars.partials) {
                 applyPostRendersIn(Handlebars.partials);
             }
         }
     }
-    
+
     /**
      * Appends a function to a compiled template that applies any registered post render functions when the template is rendered.
      */
     function appendPostRenderApplyFn(compiledTemplate, templateName) {
         return appendPostRenderFn(compiledTemplate, function(result) { return applyPostRender(templateName, result); });
-        
+
     }
 
     /**
@@ -181,7 +212,7 @@
         }
         return renderedString;
     }
-        
+
     return {
         createRenderer:createRenderer,
         registerActivator:registerActivator,
