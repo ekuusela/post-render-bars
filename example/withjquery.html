@@ -1,0 +1,101 @@
+<html>
+    <head>
+        <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
+        <script src="lib/handlebars-v4.0.5.js"></script>
+
+         <!-- jquery or jquery ui are not needed by post-render-bars but used here for some examples -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+        <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" type="text/css">
+
+        <script src="../watch.js"></script>
+        <script src="../postHandlebars.js"></script>
+        <style>
+            body { font-family: sans-serif; font-size: 16px; }
+            code { font-size: 14px; }
+            .result { background-color: #eee; margin-bottom: 4em }
+            h2 { color: #555; }
+        </style>
+    </head>
+    <body>
+        <p>Examples of how to use post-render-bars utilities with jquery. View source for more details and comments.</p>
+        <p><a href="example.html">Basic examples</a></p>
+        <a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a>
+    
+        <h2>Re-rendering a part of template after ajax response</h2>
+        <p>Refresh to fire it again.</p>
+        <div id="ajax-result" class="result"></div>
+        <script id="ajax-template" type="text/x-handlebars-template">
+            <p>Response from the url {{url}} below:</p>
+            {{#renderer loadBacon}}<div>Loading...</div>{{/renderer}}
+        </script>
+    
+        <h2>Initializing jquery plugin within a template</h2>
+        <p></p>
+        <div id="accordion-result" class="result"></div>
+        <script id="accordion-template" type="text/x-handlebars-template">
+            <p>Here is a plugin:</p>
+            {{#jqinit 'accordion'}}
+            <div>
+                <h3>Section 1</h3>
+                <div><p>Mauris mauris ante...</p></div>
+                <h3>Section 2</h3>
+                <div><p>Sed non urna...</p></div>
+            </div>
+            {{/jqinit}}
+        </script>
+
+        <h2>Initializing jquery plugin with options within a template</h2>
+        <p></p>
+        <div id="accordion-options-result" class="result"></div>
+        <script id="accordion-options-template" type="text/x-handlebars-template">
+            <p>here is a plugin with different options</p>
+            {{#jqinit 'accordion' '{
+                "icons": {
+                    "header": "ui-icon-circle-arrow-e",
+                    "activeHeader": "ui-icon-circle-arrow-s"
+                },
+                "collapsible": true
+                }'}}
+            <div>
+                <h3>Section 3</h3>
+                <div>
+                    <p>Mauris mauris ante</p>
+                </div>
+                <h3>Section 4</h3>
+                <div>
+                    <p>Sed non urna. Donec et ante. Phasellus eu ligula. Vestibulum sit amet
+                    purus. Vivamus hendrerit, dolor at aliquet laoreet, mauris turpis porttitor
+                    velit.</p>
+                </div>
+            </div>
+            {{/jqinit}}
+        </script>
+    
+        <script type="text/javascript">           
+            var templates = Handlebars.templates = Handlebars.templates || {};
+            templates['ajax-template'] = Handlebars.compile($('#ajax-template').html());
+            
+            // Re-rendering a part of template after ajax response
+            var context = {
+                url: 'https://baconipsum.com/api/?type=meat-and-filler&sentences=2',
+                loadBacon: postHandlebars.createRenderer()
+            };
+            $('#ajax-result').html(templates['ajax-template'](context));
+            
+            $.ajax({
+                type: 'GET', 
+                url: context.url
+            }).done(context.loadBacon);
+        
+            // Initializing jquery plugin within a template
+            templates['accordion-template'] = Handlebars.compile($('#accordion-template').html());
+            $('#accordion-result').html(templates['accordion-template']());
+
+            // Initializing jquery plugin with options within a template
+            templates['accordion-options-template'] = Handlebars.compile($('#accordion-options-template').html());
+            $('#accordion-options-result').html(templates['accordion-options-template']());
+
+        </script>
+    </body>
+</html>

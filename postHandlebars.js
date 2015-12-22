@@ -84,12 +84,15 @@
      *
      * The renderer can be invoked multiple times before or after the template has been added to the DOM.
      *
-     * @param {function(): string} getHtmlContentFn
+     * @param {function(): string} [getHtmlContentFn] the renderer function, defaults to a function that takes in and returns a single argument
      * @return {function()} renderer
      */
     function createRenderer(getHtmlContentFn) {
+        if (getHtmlContentFn === undefined) {
+            getHtmlContentFn = function(content) { return content; };
+        }
         var renderer = function() {
-            var html = getHtmlContentFn();
+            var html = getHtmlContentFn.apply(this, arguments);
             if (renderer.node) {
                 doRender(html);
             } else {
