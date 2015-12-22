@@ -3,12 +3,7 @@
         <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
         <script src="lib/handlebars-v4.0.5.js"></script>
 
-         <!-- jquery or jquery ui are not needed but here to demonstrate jqinit helper -->
-        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-        <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
-        <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" type="text/css">
-
-        <script src="templates/templates.js"></script>
+        <script src="templates/templates.js"></script> <!-- pre-compiled templates -->
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
         <style>
@@ -19,8 +14,11 @@
         </style>
     </head>
     <body>
+        <p>Examples of how to use post-render-bars utilities. View source for more details and comments.</p>
+        <p><a href="withjquery.html">Examples for use with jQuery</a></p>
+        <a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a>
+    
         <h2>Example 1: post render and activator </h2>
-        <p>View source for comments and details.</p>
         <p><a href="templates/list.handlebars">list.handlebars</a> is a template used for rendering multiple entries using the <a href="templates/entry.handlebars">entry.handlebars</a> partial. We use <code>postHandlebars</code> for two things:
         <p>
         - add click handler to the entry partial every time its used<br>
@@ -54,55 +52,6 @@
         <div id="example3" class="result"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
             this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
-        </script>
-
-        <h2>Example 4: initializing jquery plugin within a template</h2>
-        <p></p>
-        <div id="example4" class="result"></div>
-        <script id="accordion-template" type="text/x-handlebars-template">
-            <p>here is a plugin</p>
-            {{#jqinit 'accordion'}}
-            <div id="accordion">
-                <h3>Section 1</h3>
-                <div>
-                    <p>Mauris mauris ante, blandit et, ultrices a, suscipit eget, quam. Integer
-                    ut neque. Vivamus nisi metus</p>
-                </div>
-                <h3>Section 2</h3>
-                <div>
-                    <p>Sed non urna. Donec et ante. Phasellus eu ligula. Vestibulum sit amet
-                    purus. Vivamus hendrerit, dolor at aliquet laoreet, mauris turpis porttitor
-                    velit.</p>
-                </div>
-            </div>
-            {{/jqinit}}
-        </script>
-
-        <h2>Example 5: initializing jquery plugin with options within a template </h2>
-        <p></p>
-        <div id="example5" class="result"></div>
-        <script id="accordion-template-options" type="text/x-handlebars-template">
-            <p>here is a plugin with different options</p>
-            {{#jqinit 'accordion' '{
-                "icons": {
-                    "header": "ui-icon-circle-arrow-e",
-                    "activeHeader": "ui-icon-circle-arrow-s"
-                },
-                "collapsible": true
-                }'}}
-            <div>
-                <h3>Section 3</h3>
-                <div>
-                    <p>Mauris mauris ante</p>
-                </div>
-                <h3>Section 4</h3>
-                <div>
-                    <p>Sed non urna. Donec et ante. Phasellus eu ligula. Vestibulum sit amet
-                    purus. Vivamus hendrerit, dolor at aliquet laoreet, mauris turpis porttitor
-                    velit.</p>
-                </div>
-            </div>
-            {{/jqinit}}
         </script>
 
         <script type="text/javascript">
@@ -155,17 +104,6 @@
             var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
             dynamicContainer.innerHTML = Handlebars.templates['dynamic-template']({time: timeRenderer});
             setInterval(timeRenderer, 2000);
-
-            // Example 4:
-            Handlebars.templates['accordion-template'] = Handlebars.compile(document.getElementById('accordion-template').innerHTML);
-            var jqinitTarget = document.getElementById('example4');
-            jqinitTarget.innerHTML = Handlebars.templates['accordion-template']();
-
-            // Example 5:
-            Handlebars.templates['accordion-template-options'] = Handlebars.compile(document.getElementById('accordion-template-options').innerHTML);
-            var jqinitOptionsTarget = document.getElementById('example5');
-            jqinitOptionsTarget.innerHTML = Handlebars.templates['accordion-template-options']();
-
         </script>
     </body>
 </html>
