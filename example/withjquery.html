@@ -21,16 +21,23 @@
         <p>Examples of how to use post-render-bars utilities with jquery. View source for more details and comments.</p>
         <p><a href="example.html">Basic examples</a></p>
         <a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a>
-    
-        <h2>Re-rendering a part of template after ajax response</h2>
+
+        <h2>Re-rendering a part of template after an ajax response</h2>
         <p>Refresh to fire it again.</p>
         <div id="ajax-result" class="result"></div>
         <script id="ajax-template" type="text/x-handlebars-template">
             <p>Response from the url {{url}} below:</p>
             {{#renderer loadBacon}}<div>Loading...</div>{{/renderer}}
         </script>
-    
-        <h2>Initializing jquery plugin within a template</h2>
+
+        <h2>Define a jQuery element in a template</h2>
+        <p>This enables, for example, easy addition of event handlers.</p>
+        <div id="jquery-element-result" class="result"></div>
+        <script id="jquery-element-template" type="text/x-handlebars-template">
+            <p>This button has a handler attached to it: {{#jq setHandler}}<button>try me</button>{{/jq}}</p>
+        </script>
+
+        <h2>Initializing a jQuery plugin within a template</h2>
         <p></p>
         <div id="accordion-result" class="result"></div>
         <script id="accordion-template" type="text/x-handlebars-template">
@@ -45,7 +52,7 @@
             {{/jqinit}}
         </script>
 
-        <h2>Initializing jquery plugin with options within a template</h2>
+        <h2>Initializing a jQuery plugin with options within a template</h2>
         <p></p>
         <div id="accordion-options-result" class="result"></div>
         <script id="accordion-options-template" type="text/x-handlebars-template">
@@ -71,28 +78,42 @@
             </div>
             {{/jqinit}}
         </script>
-    
-        <script type="text/javascript">           
+
+        <script type="text/javascript">
             var templates = Handlebars.templates = Handlebars.templates || {};
-            templates['ajax-template'] = Handlebars.compile($('#ajax-template').html());
-            
+
             // Re-rendering a part of template after ajax response
+            templates['ajax-template'] = Handlebars.compile($('#ajax-template').html());
             var context = {
                 url: 'https://baconipsum.com/api/?type=meat-and-filler&sentences=2',
                 loadBacon: postHandlebars.createRenderer()
             };
             $('#ajax-result').html(templates['ajax-template'](context));
-            
+
             $.ajax({
-                type: 'GET', 
+                type: 'GET',
                 url: context.url
             }).done(context.loadBacon);
-        
-            // Initializing jquery plugin within a template
+
+            // Define a jQuery element in a template
+            templates['jquery-element-template'] = Handlebars.compile($('#jquery-element-template').html());
+            var context = {
+                setHandler: function(element) {
+                    element.on('click', function() {
+                        var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
+                        var localISOTime = (new Date(Date.now() - tzoffset)).toISOString().slice(0,-1);
+                        element.html('clicked at ' + localISOTime);
+                    });
+                }
+            };
+            $('#jquery-element-result').html(templates['jquery-element-template'](context));
+
+
+            // Initializing a jQuery plugin within a template
             templates['accordion-template'] = Handlebars.compile($('#accordion-template').html());
             $('#accordion-result').html(templates['accordion-template']());
 
-            // Initializing jquery plugin with options within a template
+            // Initializing a jQuery plugin with options within a template
             templates['accordion-options-template'] = Handlebars.compile($('#accordion-options-template').html());
             $('#accordion-options-result').html(templates['accordion-options-template']());
 
