@@ -145,8 +145,19 @@
     Handlebars.registerHelper('renderer', rendererHelper);
 
     /**
+     * Block-helper for getting access to a jquery wrapped element from a template after it's added to the DOM.
+     */
+    function jqHelper(fn, options) {
+        var htmlToInit = options.fn(this).trim();
+        return new Handlebars.SafeString(watch.forHtml(htmlToInit, function(element) {
+            fn($(element));
+        }));
+    }
+    Handlebars.registerHelper('jq', jqHelper);
+
+    /**
      * Block-helper for invoking a function on jquery wrapped element from a template after it's added to the DOM.
-     * 
+     *
      * @param {string} fnName name of the jquery function to call
      * @param {string} [argJson] optional JSON string that is parsed to an argument for the function.
      */
@@ -170,7 +181,7 @@
             } else {
                 $(element)[fnName]();
             }
-            
+
         }));
     }
     Handlebars.registerHelper('jqinit', jqinitHelper);
