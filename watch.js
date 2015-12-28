@@ -27,11 +27,11 @@
     /**
      * Starts watching the body for addition of a Node described by the given HTML string.
      *
-     * Modifies the first element in the HTML to have a class attribute or appends a new class if it already has one.
+     * Modifies the first element in the HTML string to have a class attribute or appends a new class if it already has one.
      *
      * When an element with the class is encountered, the class list is restored/removed and the callback is invoked.
      *
-     * Returns the modified HTML.
+     * Returns the modified HTML, which is the one that should be added to the document for the callback to trigger.
      *
      * The callback gets the first element as an argument.
      */
