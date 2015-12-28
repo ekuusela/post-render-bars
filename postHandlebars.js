@@ -91,29 +91,34 @@
         if (getHtmlContentFn === undefined) {
             getHtmlContentFn = function(content) { return content; };
         }
+        var nodes = [];
         var renderer = function() {
-            var html = getHtmlContentFn.apply(this, arguments);
-            if (renderer.node) {
-                doRender(html);
+            var args = renderer.defaultArgs.slice();
+            var i;
+            for (i = 0; i < arguments.length; i++) {
+                args[i] = arguments[i];
+            }
+            var html = getHtmlContentFn.apply(this, args);
+            if (nodes.length > 0) {
+                nodes.forEach(function(node) {
+                    doRender(html, node);
+                });
             } else {
                 renderer.earlyRenderedHtml = html;
             }
         };
-        var doRender = function(html) {
-            renderer.node.innerHTML = html;
+        var doRender = function(html, node) {
+            node.innerHTML = html;
         };
-        Object.defineProperty(renderer, '_node', {
-            writable: true
-        });
-        Object.defineProperty(renderer, 'node', {
-            get: function() { return this._node; },
-            set: function(value) {
-                this._node = value;
-                if (this.earlyRenderedHtml) {
-                    doRender(this.earlyRenderedHtml);
-                }
+        renderer.defaultArgs = [];
+
+        renderer.addNode = function(node) {
+            nodes.push(node);
+            if (renderer.earlyRenderedHtml) {
+                doRender(renderer.earlyRenderedHtml, node);
             }
-        });
+        };
+
         return renderer;
     }
 
@@ -128,8 +133,14 @@
      *
      * @param {function(): string} renderer a function created by the createRenderer function
      */
-    function rendererHelper(renderer, options) {
+    function rendererHelper(renderer/*[, args...], options*/) {
         if (typeof renderer !== 'function') { throw 'Expected a function as the first argument'; }
+        var options = arguments[arguments.length - 1];
+        if (arguments.length > 2) {
+            renderer.defaultArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+        }
+        renderer.options = options;
+
         var placeholderHtml;
         if (options.fn) {
             placeholderHtml = options.fn(this);
@@ -139,19 +150,75 @@
         }
 
         return new Handlebars.SafeString(watch.forHtml(placeholderHtml, function(node) {
-            renderer.node = node;
+            renderer.addNode(node);
         }));
     }
     Handlebars.registerHelper('renderer', rendererHelper);
+
+    function getModelRenderer(nonDefaultRenderers) {
+        var doRender = function(key) {
+            if (fn.hasOwnProperty(key) && typeof fn[key] === 'function') {
+                fn[key](readProperty(fn.options.data.root, key));
+            }
+        };
+        var fn = function(key) {
+            if (key !== undefined) {
+                doRender(key);
+            } else {
+                for (var prop in fn) {
+                    doRender(prop);
+                }
+            }
+        };
+        if (nonDefaultRenderers) {
+            for (var prop in nonDefaultRenderers) {
+                if (nonDefaultRenderers.hasOwnProperty(prop)) {
+                    fn[prop] = createRenderer(nonDefaultRenderers[prop]);
+                }
+            }
+        }
+        return fn;
+    }
+
+    /**
+     * Helper to be used together with the getModelRenderer. The context must contain the modelRenderer function
+     * which then can be used to re-render any values from the context.
+     */
+    function modelHelper(key, options) {
+        var rendererKeyInContext = 'model';
+        var modelRenderer = options.data.root[rendererKeyInContext];
+
+        if (typeof modelRenderer !== 'function') {
+            throw 'Expected modelRenderer function to be passed in to the handlebars context under the key "' + rendererKeyInContext + '".';
+        }
+        if (modelRenderer[key] === undefined) {
+            modelRenderer[key] = createRenderer();
+        }
+        if (modelRenderer.options === undefined) {
+            modelRenderer.options = options;
+        }
+
+        modelRenderer(key);
+        return rendererHelper(modelRenderer[key], options);
+    }
+    Handlebars.registerHelper('model', modelHelper);
+
+    /**
+     * Block-helper for getting access to an element from a template after it's added to the DOM.
+     */
+    function elementHelper(fn, options) {
+        var htmlToInit = options.fn(this).trim();
+        return new Handlebars.SafeString(watch.forHtml(htmlToInit, function(element) {
+            fn(element);
+        }));
+    }
+    Handlebars.registerHelper('element', elementHelper);
 
     /**
      * Block-helper for getting access to a jquery wrapped element from a template after it's added to the DOM.
      */
     function jqHelper(fn, options) {
-        var htmlToInit = options.fn(this).trim();
-        return new Handlebars.SafeString(watch.forHtml(htmlToInit, function(element) {
-            fn($(element));
-        }));
+        return elementHelper(function(element) { fn($(element)); }, options);
     }
     Handlebars.registerHelper('jq', jqHelper);
 
@@ -198,6 +265,21 @@
         registerPostRender(templateName, activator);
     }
 
+    /**
+     * Reads property from object. Supports reading nested properties with dot or bracket notation.
+     */
+    var readProperty = function(object, property) {
+      var value = object;
+      property = property.replace(/\[('|")?|('|")?\]/g, '.');
+      if (property.substring(property.length - 1) === '.') {
+          property = property.slice(0, property.length - 1);
+      }
+      property.split('.').forEach(function(name) {
+        value = value[name];
+      });
+      return value;
+    };
+
     function setDefaultTargets() {
         if (Handlebars) {
             if (Handlebars.templates) {
@@ -230,6 +312,7 @@
     return {
         createRenderer:createRenderer,
         registerActivator:registerActivator,
+        getModelRenderer:getModelRenderer,
         registerPostRender:registerPostRender,
         appendPostRenderFn:appendPostRenderFn,
         applyPostRendersIn:applyPostRendersIn
