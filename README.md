@@ -16,7 +16,18 @@ Dependencies:
 
 Uses MutationObserver, see webcomponents-lite for a polyfill.
 
-**See [example.html for a demo](http://ekuusela.github.io/post-render-bars/example/example.html) and usage examples.**
+**See [example.html for a demo](http://ekuusela.github.io/post-render-bars/example/example.html) and usage examples.** Here's a shortened one using the renderer helper:
+
+template:
+
+    <p>current time: {{#renderer time}}<span>waiting</span>{{/renderer}}</p>
+
+js:
+
+     var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
+     timeRenderer(); // template will be updated immediately when it's appended to the document
+     container.innerHTML = template({time: timeRenderer});
+     setInterval(timeRenderer, 1000); // this causes the displayed time to be updated every second
 
 ##postHandlebars.js
 
