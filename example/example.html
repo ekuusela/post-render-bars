@@ -10,14 +10,16 @@
             body { font-family: sans-serif; font-size: 16px; }
             code { font-size: 14px; }
             .result { background-color: #eee; margin-bottom: 4em }
+            .small { font-size: 10px; }
             h2 { color: #555; }
+            p { color: #007; }
         </style>
     </head>
     <body>
         <p>Examples of how to use post-render-bars utilities. View source for more details and comments.</p>
         <p><a href="withjquery.html">Examples for use with jQuery</a></p>
         <a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a>
-    
+
         <h2>Example 1: post render and activator</h2>
         <p><a href="templates/list.handlebars">list.handlebars</a> is a template used for rendering multiple entries using the <a href="templates/entry.handlebars">entry.handlebars</a> partial. We use <code>postHandlebars</code> for two things:
         <p>
@@ -51,17 +53,39 @@
         <p>using <code>renderer</code> helper to update content in a template after rendering it</p>
         <div id="example3" class="result"></div>
         <script id="dynamic-template" type="text/x-handlebars-template">
-            this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}
+            <p>this will be updated {{#renderer time}}<span>waiting</span>{{/renderer}}</p>
+        </script>
+
+        <h2>Example 4: using modelRenderer helper for binding context to dom</h2>
+        <p>Provides the same possibilities as the renderer helper but requires less code to setup.</p>
+        <div id="model-binding-result" class="result"></div>
+        <script id="model-binding-template" type="text/x-handlebars-template">
+            values from context:
+            {{model 'one'}}
+            {{model 'two'}}
+            {{model 'test.nested'}}
+            {{#model 'date'}}<p>{{dateToIso date}}</p>{{/model}}
+            {{#model 'currentUser'}}<p>{{> person currentUser}}</p>{{/model}}
+            {{#model 'version'}}<p>{{version.major}}.{{version.minor}}</p>{{/model}}
+            {{#element button}}{{> fancy-button action='Update'}}{{/element}}
+            {{#model 'date'}}<p>{{dateToIso date}}</p>{{/model}}
+            {{#element button}}{{#model 'action'}}{{> fancy-button}}{{/model}}{{/element}}
+        </script>
+        <script id="fancy-button-partial" type="text/x-handlebars-template">
+            <button type="button" class="fancy">{{action}}<div class="small">Previous update at: {{model 'date'}}</div></button>
+        </script>
+        <script id="person-partial" type="text/x-handlebars-template">
+            full name is {{first}} {{last}}
         </script>
 
         <script type="text/javascript">
+            // register everything as partials
+            Handlebars.partials = Handlebars.templates;
+
             // create some post render functions
             var allCaps = function(html) { return html.toUpperCase(); };
             var replaceMy = function(html) { return html.replace(/my/gi, 'your') };
             var replaceContent = function(html) { return html.replace(/content/gi, 'replaced content') };
-
-            // register everything as partials
-            Handlebars.partials = Handlebars.templates;
 
             // Example 1: add some post render functions to pre-compiled templates
             // these templates were compiled by executing
@@ -103,7 +127,54 @@
             var dynamicContainer = document.getElementById('example3');
             var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
             dynamicContainer.innerHTML = Handlebars.templates['dynamic-template']({time: timeRenderer});
-            setInterval(timeRenderer, 2000);
+            setInterval(timeRenderer, 1000);
+
+            // Example 4: using modelRenderer helper for binding context to dom
+            Handlebars.registerHelper('dateToIso', function(date) {
+                var tzoffset = date.getTimezoneOffset() * 60000; //offset in milliseconds
+                var localISOTime = (new Date(date - tzoffset)).toISOString().slice(0,-1);
+                return localISOTime;
+            });
+
+            Handlebars.templates['model-binding-template'] = Handlebars.compile(document.getElementById('model-binding-template').innerHTML);
+            Handlebars.templates['fancy-button'] = Handlebars.compile(document.getElementById('fancy-button-partial').innerHTML);
+            Handlebars.templates['person'] = Handlebars.compile(document.getElementById('person-partial').innerHTML);
+            var modelBindingContainer = document.getElementById('model-binding-result');
+            var modelRenderer = postHandlebars.getModelRenderer();
+            var obj = {nested: ''};
+            var context = {
+                model: modelRenderer,
+                one: 'value one',
+                two: 'value two',
+                action: 'Update',
+                currentUser: {first: 'John', last: 'Doe'},
+                date: new Date(),
+                test: obj,
+                version: {major: 0, minor: 0},
+                button: function(element) {
+                    element.addEventListener('click', function() {
+                        context.date = new Date();
+                        modelRenderer('date');
+                        console.log('clicked');
+                    });
+                }
+            };
+            modelBindingContainer.innerHTML = Handlebars.templates['model-binding-template'](context);
+
+            context.two = 'new value for two';
+            modelRenderer('two');
+
+            obj.nested = 'new value for nested';
+            modelRenderer('test.nested');
+
+            context.version.minor = 1;
+            modelRenderer('version');
+
+            context.currentUser.first = 'Jane';
+            modelRenderer('currentUser');
+
+            context.action = 'Update!';
+            modelRenderer('action');
         </script>
     </body>
 </html>
