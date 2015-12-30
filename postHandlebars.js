@@ -154,7 +154,7 @@
                 }
                 args.push(target.options);
 
-                var html = '' + getHtmlContentFn.apply(target.options.data.root, args);
+                var html = '' + getHtmlContentFn.apply(target.context, args);
                 if (target.node) {
                     doRender(html, target);
                 } else {
@@ -224,8 +224,9 @@
     }
     Handlebars.registerHelper('renderer', rendererHelper);
 
-    function getModelRenderer() {
-        var fn = function(key) {
+    function getModelRenderer(context) {
+        var fn = function(key, value) {
+            var valuePassedIn = arguments.length > 1;
             var matchingProps = [];
             if (key === undefined) {
                 matchingProps = Object.keys(fn);
@@ -233,6 +234,9 @@
                 matchingProps = [key];
             }
             matchingProps.forEach(function(key) {
+                if (valuePassedIn) {
+                    setProperty(context, key, value)
+                }
                 if (fn.hasOwnProperty(key) && typeof fn[key] === 'function') {
                     fn[key]();
                 }
@@ -247,16 +251,16 @@
      */
     function modelHelper(key, options) {
         var rendererKeyInContext = 'model';
-        var modelRenderer = options.data.root[rendererKeyInContext];
-
-        if (typeof modelRenderer !== 'function') {
-            throw 'Expected modelRenderer function to be passed in to the handlebars context under the key "' + rendererKeyInContext + '".';
+        if (options.data.root[rendererKeyInContext] === undefined) {
+            options.data.root[rendererKeyInContext] = getModelRenderer(this);
+        } else if (typeof options.data.root[rendererKeyInContext] !== 'function') {
+            throw 'Naming conflict, context already has something defined with the key "' + rendererKeyInContext + '".';
         }
+        var modelRenderer = options.data.root[rendererKeyInContext];
         if (modelRenderer[key] === undefined) {
             modelRenderer[key] = createRenderer(function() {
                 var options = arguments[arguments.length - 1];
-                var value = readProperty(options.data.root, key)
-                return options.fn ? options.fn(this) : value;
+                return options.fn ? options.fn(this) : readProperty(options.data.root, key);
             });
         }
 
@@ -323,17 +327,30 @@
     /**
      * Reads property from object. Supports reading nested properties with dot or bracket notation.
      */
-    var readProperty = function(object, property) {
-      var value = object;
-      property = property.replace(/\[('|")?|('|")?\]/g, '.');
-      if (property.substring(property.length - 1) === '.') {
-          property = property.slice(0, property.length - 1);
-      }
-      property.split('.').forEach(function(name) {
-        value = value[name];
-      });
-      return value;
+    function readProperty(object, property) {
+        var value = object;
+        property = property.replace(/\[('|")?|('|")?\]/g, '.');
+        if (property.substring(property.length - 1) === '.') {
+            property = property.slice(0, property.length - 1);
+        }
+        property.split('.').forEach(function(name) {
+            value = value[name];
+        });
+        return value;
     };
+
+    function setProperty(object, property, newValue) {
+        var value = object;
+        property = property.replace(/\[('|")?|('|")?\]/g, '.');
+        if (property.substring(property.length - 1) === '.') {
+            property = property.slice(0, property.length - 1);
+        }
+        var parts = property.split('.');
+        for (var i = 0; i < parts.length - 1; i++) {
+            value = value[parts[i]];
+        }
+        value[parts[parts.length - 1]] = newValue;
+    }
 
     function getElementDefinedByHtmlIfAny(htmlString, element) {
         if (stringDefinesAnElement(htmlString, element)) {
