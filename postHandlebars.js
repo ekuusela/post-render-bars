@@ -76,6 +76,47 @@
         };
     }
 
+    function setDefaultTargets() {
+        if (Handlebars) {
+            if (Handlebars.templates) {
+                applyPostRendersIn(Handlebars.templates);
+            }
+            if (Handlebars.templates !== Handlebars.partials) {
+                applyPostRendersIn(Handlebars.partials);
+            }
+        }
+    }
+
+    /**
+     * Appends a function to a compiled template that applies any registered post render functions when the template is rendered.
+     */
+    function appendPostRenderApplyFn(compiledTemplate, templateName) {
+        return appendPostRenderFn(compiledTemplate, function(result) { return applyPostRender(templateName, result); });
+
+    }
+
+    /**
+     * Applies any registered post render functions to the given string.
+     */
+    function applyPostRender(templateName, renderedString) {
+        if (typeof postRenderFns[templateName] === 'function') {
+            return postRenderFns[templateName](renderedString);
+        }
+        return renderedString;
+    }
+
+    /**
+     * Registers the function argument as a callback to be invoked after the template HTML has been added to DOM.
+     *
+     * The callback gets a single argument: the first element defined in the template
+     */
+    function registerActivator(templateName, fn) {
+        var activator = function(html) {
+            return watch.forHtml(html, fn);
+        };
+        registerPostRender(templateName, activator);
+    }
+
     /**
      * Creates and returns a renderer function to be used together with the renderer helper.
      *
@@ -84,6 +125,9 @@
      *
      * The renderer can be invoked multiple times before or after the template has been added to the DOM.
      *
+     * The callback should return a string of HTML (or something castable to a string). The string can re-define the entire element defined in the block
+     * or contents for that element.
+     *
      * @param {function(): string} [getHtmlContentFn] the renderer function, defaults to a function that takes in and returns a single argument
      * @return {function()} renderer
      */
@@ -91,32 +135,55 @@
         if (getHtmlContentFn === undefined) {
             getHtmlContentFn = function(content) { return content; };
         }
-        var nodes = [];
-        var renderer = function() {
-            var args = renderer.defaultArgs.slice();
-            var i;
-            for (i = 0; i < arguments.length; i++) {
-                args[i] = arguments[i];
-            }
-            var html = getHtmlContentFn.apply(this, args);
-            if (nodes.length > 0) {
-                nodes.forEach(function(node) {
-                    doRender(html, node);
-                });
+        var doRender = function(html, target) {
+            var newElement = getElementDefinedByHtmlIfAny(html, target.node);
+            if (newElement) {
+                replaceContentAndAttributes(target.node, newElement);
             } else {
-                renderer.earlyRenderedHtml = html;
+                target.node.innerHTML = html;
             }
         };
-        var doRender = function(html, node) {
-            node.innerHTML = html;
-        };
-        renderer.defaultArgs = [];
+        var targets = [];
+        var renderer = function() {
+            var argsForRenderer = arguments;
+            targets.forEach(function(target) {
+                var args = target.defaultArgs.slice();
+                var i;
+                for (i = 0; i < argsForRenderer.length; i++) {
+                    args[i] = argsForRenderer[i];
+                }
+                args.push(target.options);
 
-        renderer.addNode = function(node) {
-            nodes.push(node);
-            if (renderer.earlyRenderedHtml) {
-                doRender(renderer.earlyRenderedHtml, node);
-            }
+                var html = '' + getHtmlContentFn.apply(target.options.data.root, args);
+                if (target.node) {
+                    doRender(html, target);
+                } else {
+                    target.earlyRenderedHtml = html;
+                }
+            });
+
+        };
+        renderer.getNewTarget = function(options, context) {
+            var target = {
+                options: options,
+                context: context,
+                earlyRenderedHtml: undefined,
+                defaultArgs: []
+            };
+            var node;
+            Object.defineProperty(target, 'node', {
+                set: function(newNode) {
+                    node = newNode;
+                    if (target.earlyRenderedHtml) {
+                        doRender(target.earlyRenderedHtml, target);
+                    }
+                },
+                get: function() {
+                    return node;
+                }
+            });
+            targets.push(target);
+            return target;
         };
 
         return renderer;
@@ -125,9 +192,8 @@
     /**
      * Helper for creating HTML nodes that can have their content updated by executing a callback.
      *
-     * Can be used as a regular or a block helper.
-     * In block mode, the contents of the first element in the block will be replaced with the renderer function's return value whenever that renderer gets invoked.
-     * When used as regular helper, or if the block contents are omitted, behaves as if used in block mode with the content set to '<div></div>'.
+     * Can be used as a regular or a block helper. The block must define a single HTML element.
+     * When used as a regular helper, or if the block contents are omitted, behaves as if used in block mode with the content set to '<div></div>'.
      *
      * Note: using this helper makes sense only for HTML content intended to be viewed in a DOM.
      *
@@ -136,47 +202,42 @@
     function rendererHelper(renderer/*[, args...], options*/) {
         if (typeof renderer !== 'function') { throw 'Expected a function as the first argument'; }
         var options = arguments[arguments.length - 1];
+        var target = renderer.getNewTarget(options, this);
         if (arguments.length > 2) {
-            renderer.defaultArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
+            target.defaultArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
         }
-        renderer.options = options;
 
-        var placeholderHtml;
+        var blockHtml;
         if (options.fn) {
-            placeholderHtml = options.fn(this);
+            blockHtml = options.fn(this);
+            if (blockHtml instanceof Handlebars.SafeString) {
+                blockHtml = blockHtml.string;
+            }
         }
-        if (!placeholderHtml) {
-            placeholderHtml = '<div></div>';
+        if (!blockHtml) {
+            blockHtml = '<div></div>';
         }
 
-        return new Handlebars.SafeString(watch.forHtml(placeholderHtml, function(node) {
-            renderer.addNode(node);
+        return new Handlebars.SafeString(watch.forHtml(blockHtml, function(node) {
+            target.node = node;
         }));
     }
     Handlebars.registerHelper('renderer', rendererHelper);
 
-    function getModelRenderer(nonDefaultRenderers) {
-        var doRender = function(key) {
-            if (fn.hasOwnProperty(key) && typeof fn[key] === 'function') {
-                fn[key](readProperty(fn.options.data.root, key));
-            }
-        };
+    function getModelRenderer() {
         var fn = function(key) {
-            if (key !== undefined) {
-                doRender(key);
+            var matchingProps = [];
+            if (key === undefined) {
+                matchingProps = Object.keys(fn);
             } else {
-                for (var prop in fn) {
-                    doRender(prop);
-                }
+                matchingProps = [key];
             }
+            matchingProps.forEach(function(key) {
+                if (fn.hasOwnProperty(key) && typeof fn[key] === 'function') {
+                    fn[key]();
+                }
+            })
         };
-        if (nonDefaultRenderers) {
-            for (var prop in nonDefaultRenderers) {
-                if (nonDefaultRenderers.hasOwnProperty(prop)) {
-                    fn[prop] = createRenderer(nonDefaultRenderers[prop]);
-                }
-            }
-        }
         return fn;
     }
 
@@ -192,14 +253,16 @@
             throw 'Expected modelRenderer function to be passed in to the handlebars context under the key "' + rendererKeyInContext + '".';
         }
         if (modelRenderer[key] === undefined) {
-            modelRenderer[key] = createRenderer();
-        }
-        if (modelRenderer.options === undefined) {
-            modelRenderer.options = options;
+            modelRenderer[key] = createRenderer(function() {
+                var options = arguments[arguments.length - 1];
+                var value = readProperty(options.data.root, key)
+                return options.fn ? options.fn(this) : value;
+            });
         }
 
+        var result = rendererHelper.call(this, modelRenderer[key], options);
         modelRenderer(key);
-        return rendererHelper(modelRenderer[key], options);
+        return result;
     }
     Handlebars.registerHelper('model', modelHelper);
 
@@ -207,7 +270,11 @@
      * Block-helper for getting access to an element from a template after it's added to the DOM.
      */
     function elementHelper(fn, options) {
-        var htmlToInit = options.fn(this).trim();
+        var htmlToInit = options.fn(this);
+        if (htmlToInit instanceof Handlebars.SafeString) {
+            htmlToInit = htmlToInit.string;
+        }
+        htmlToInit = htmlToInit.trim();
         return new Handlebars.SafeString(watch.forHtml(htmlToInit, function(element) {
             fn(element);
         }));
@@ -254,18 +321,6 @@
     Handlebars.registerHelper('jqinit', jqinitHelper);
 
     /**
-     * Registers the function argument as a callback to be invoked after the template HTML has been added to DOM.
-     *
-     * The callback gets a single argument: the first element defined in the template
-     */
-    var registerActivator = function(templateName, fn) {
-        var activator = function(html) {
-            return watch.forHtml(html, fn);
-        };
-        registerPostRender(templateName, activator);
-    }
-
-    /**
      * Reads property from object. Supports reading nested properties with dot or bracket notation.
      */
     var readProperty = function(object, property) {
@@ -280,33 +335,53 @@
       return value;
     };
 
-    function setDefaultTargets() {
-        if (Handlebars) {
-            if (Handlebars.templates) {
-                applyPostRendersIn(Handlebars.templates);
-            }
-            if (Handlebars.templates !== Handlebars.partials) {
-                applyPostRendersIn(Handlebars.partials);
+    function getElementDefinedByHtmlIfAny(htmlString, element) {
+        if (stringDefinesAnElement(htmlString, element)) {
+            var parsed = parseHtml(htmlString);
+            if (parsed.length === 1) {
+                return parsed[0];
             }
         }
     }
 
-    /**
-     * Appends a function to a compiled template that applies any registered post render functions when the template is rendered.
-     */
-    function appendPostRenderApplyFn(compiledTemplate, templateName) {
-        return appendPostRenderFn(compiledTemplate, function(result) { return applyPostRender(templateName, result); });
+    function stringDefinesAnElement(htmlString, element) {
+        return htmlString.trim().toLowerCase().startsWith('<' + element.tagName.toLowerCase());
+    }
 
+    function replaceContentAndAttributes(target, source) {
+        var preservedClasses = watch.getElementWatchClasses(target);
+        target.innerHTML = source.innerHTML;
+        setAttributes(target, source);
+        preservedClasses.forEach(function(name) {
+            if (!target.classList.contains(name)) {
+                target.classList.add(name);
+            }
+        });
     }
 
     /**
-     * Applies any registered post render functions to the given string.
+     * Sets attributes of element target to match source
      */
-    function applyPostRender(templateName, renderedString) {
-        if (typeof postRenderFns[templateName] === 'function') {
-            return postRenderFns[templateName](renderedString);
+    function setAttributes(target, source) {
+        var i, a;
+        var oldAttributeNames = [];
+        for (i = 0; i < target.attributes.length; i++) {
+            a = target.attributes[i];
+            oldAttributeNames.push(a.name);
         }
-        return renderedString;
+        for (i = 0; i < oldAttributeNames.length; i++) {
+            target.removeAttribute(oldAttributeNames[i]);
+        }
+        for (i = 0; i < source.attributes.length; i++) {
+            a = source.attributes[i];
+            target.setAttribute(a.name, a.value);
+        }
+    }
+
+    function parseHtml(str) {
+        var tmp = document.implementation.createHTMLDocument();
+        tmp.body.innerHTML = str;
+        return tmp.body.children;
     }
 
     return {

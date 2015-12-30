@@ -22,7 +22,7 @@
     'use strict';
 
     var idCounter = 0;
-    var attributeName = 'data-watch-id';
+    var watchClassPrefix = '_watched_';
 
     /**
      * Starts watching the body for addition of a Node described by the given HTML string.
@@ -37,7 +37,7 @@
      */
     function forHtml(html, callback) {
         idCounter += 1;
-        var className = '_watched_' + idCounter;
+        var className = watchClassPrefix + idCounter;
         var result = appendToClass(html, className);
         if (!result) { return html; }
         html = result;
@@ -96,7 +96,16 @@
         return str.slice(0, index) + item + str.slice(index);
     }
 
+    var watchClassRegExp = new RegExp(watchClassPrefix + '[0-9]+');
+
+    function getElementWatchClasses(element) {
+        return Array.prototype.filter.call(element.classList, function(name) {
+            return name.match(watchClassRegExp)
+        });
+    }
+
     return {
         forHtml: forHtml,
+        getElementWatchClasses: getElementWatchClasses
     };
 }));
