@@ -16,6 +16,7 @@
         </style>
     </head>
     <body>
+
         <p>Examples of how to use post-render-bars utilities. View source for more details and comments.</p>
         <p><a href="withjquery.html">Examples for use with jQuery</a></p>
         <a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a>
@@ -60,21 +61,44 @@
         <p>Provides the same possibilities as the renderer helper but requires less code to setup.</p>
         <div id="model-binding-result" class="result"></div>
         <script id="model-binding-template" type="text/x-handlebars-template">
+
             values from context:
+            {{> fancy-button button=button}}
             {{model 'one'}}
             {{model 'two'}}
             {{model 'test.nested'}}
+
             {{#model 'date'}}<p>{{dateToIso date}}</p>{{/model}}
+
             {{#model 'currentUser'}}<p>{{> person currentUser}}</p>{{/model}}
             {{#model 'version'}}<p>{{version.major}}.{{version.minor}}</p>{{/model}}
-            {{#element button}}{{> fancy-button action='Update'}}{{/element}}
+
+            {{> fancy-button}}<br>
+
+
             {{#model 'date'}}<p>{{dateToIso date}}</p>{{/model}}
-            {{#element button}}{{> fancy-button buttonDetails}}{{/element}}
+            {{> fancy-button button=button}}
+            list:
+            {{#model 'test.list'}}
+                <p>
+                {{#each test.list}}
+                        {{> fancy-button ../this text=text}}
+                {{else}}
+                        empty list
+                {{/each}}
+                </p>
+            {{/model}}
+
         </script>
         <script id="fancy-button-partial" type="text/x-handlebars-template">
-            {{#model 'buttonDetails'}}
-                <button type="button" class="fancy">{{action}}<div class="small">Previous update at: {{model 'date'}}</div></button>
-            {{/model}}
+                {{#element button}}
+
+                        <button type="button" class="fancy">
+                            {{text}}
+                            <div class="small">Previous update at: {{#model 'date'}}<span>{{date}}</span>{{/model}}</div>
+                        </button>
+
+                {{/element}}
         </script>
         <script id="person-partial" type="text/x-handlebars-template">
             full name is {{first}} {{last}}
@@ -142,7 +166,7 @@
             Handlebars.templates['fancy-button'] = Handlebars.compile(document.getElementById('fancy-button-partial').innerHTML);
             Handlebars.templates['person'] = Handlebars.compile(document.getElementById('person-partial').innerHTML);
             var modelBindingContainer = document.getElementById('model-binding-result');
-            var obj = {nested: ''};
+            var obj = {nested: '', list: [{text: 'update'}, {text: 'yes'}, {text: 'go ahead'}]};
             var context = {
                 one: 'value one',
                 two: 'value two',
@@ -159,11 +183,20 @@
                     });
                 }
             };
+
             modelBindingContainer.innerHTML = Handlebars.templates['model-binding-template'](context);
+            context.model('date');
+            //context.model('test.list'); // FIXME this undoes the above..
 
             context.model('two', 'new value for two');
 
             context.model('test.nested', 'new value for nested');
+
+            context.test.list[1] = {text: 'yes, update'};
+            context.test.list[2].text = 'do update';
+            context.test.list.push({text: 'ok'});
+            context.model('test.list');
+
 
             context.version.minor = 1;
             context.model('version');

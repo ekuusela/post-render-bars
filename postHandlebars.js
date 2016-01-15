@@ -136,11 +136,26 @@
             getHtmlContentFn = function(content) { return content; };
         }
         var doRender = function(html, target) {
-            var newElement = getElementDefinedByHtmlIfAny(html, target.node);
-            if (newElement) {
-                replaceContentAndAttributes(target.node, newElement);
+            html = html.trim();
+            var parsed = parseHtml(html); // FIXME use watch.parseHtml
+            var newNodesMatchTarget = (target.nodes.length === parsed.length) && target.nodes.every(function(node, i) {
+                return node.nodeType === parsed[i].nodeType;
+            });
+            if (newNodesMatchTarget) {
+                target.nodes.forEach(function(node, i) {
+                    if (node.nodeType === 3) {
+                        node.nodeValue = parsed[i].nodeValue;
+                    } else {
+                        replaceContentAndAttributes(node, parsed[i]);
+                    }
+                });
             } else {
-                target.node.innerHTML = html;
+                var firstNode = target.nodes[0];
+                if (firstNode.nodeType === 3) {
+                    firstNode.nodeValue = html;
+                } else {
+                    firstNode.innerHTML = html;
+                }
             }
         };
         var targets = [];
@@ -155,9 +170,10 @@
                 args.push(target.options);
 
                 var html = '' + getHtmlContentFn.apply(target.context, args);
-                if (target.node) {
+                if (target.nodes) {
                     doRender(html, target);
                 } else {
+                    watch.getIdentifiersIn(target.earlyRenderedHtml).forEach(watch.cancel);
                     target.earlyRenderedHtml = html;
                 }
             });
@@ -170,29 +186,53 @@
                 earlyRenderedHtml: undefined,
                 defaultArgs: []
             };
-            var node;
-            Object.defineProperty(target, 'node', {
-                set: function(newNode) {
-                    node = newNode;
+            var nodes;
+            Object.defineProperty(target, 'nodes', {
+                set: function(newNodes) {
+                    nodes = newNodes;
                     if (target.earlyRenderedHtml) {
                         doRender(target.earlyRenderedHtml, target);
+                        target.earlyRenderedHtml = undefined;
                     }
                 },
                 get: function() {
-                    return node;
+                    return nodes;
                 }
             });
             targets.push(target);
             return target;
         };
-
+        renderer.removeTarget = function(target) {
+            var i = targets.indexOf(target);
+            if (i > -1) {
+                targets.splice(i, 1);
+            }
+        };
         return renderer;
     }
 
     /**
+     * We add a self reference to all contexts to keep a reference to the original context which handlebars loses if hash arguments are provided.
+     */
+    var origTemplate = Handlebars.VM.template;
+    Handlebars.VM.template = function() {
+        var result = origTemplate.apply(this, arguments);
+        return function(context) {
+            if (!context.hasOwnProperty('_self')) {
+                Object.defineProperty(context, '_self', {
+                    value: context,
+                    enumerable: true // to make Handlebars.Utils.extend add this to the context that gets extended with hash values
+                    });
+            }
+
+            return result.apply(this, arguments);
+        };
+    };
+
+    /**
      * Helper for creating HTML nodes that can have their content updated by executing a callback.
      *
-     * Can be used as a regular or a block helper. The block must define a single HTML element.
+     * Can be used as a regular or a block helper. The block must define a single HTML element. FIXME outdated
      * When used as a regular helper, or if the block contents are omitted, behaves as if used in block mode with the content set to '<div></div>'.
      *
      * Note: using this helper makes sense only for HTML content intended to be viewed in a DOM.
@@ -201,25 +241,28 @@
      */
     function rendererHelper(renderer/*[, args...], options*/) {
         if (typeof renderer !== 'function') { throw 'Expected a function as the first argument'; }
+
         var options = arguments[arguments.length - 1];
-        var target = renderer.getNewTarget(options, this);
+        var target = renderer.getNewTarget(options, this._self || this);
         if (arguments.length > 2) {
             target.defaultArgs = Array.prototype.slice.call(arguments, 1, arguments.length - 1);
         }
 
         var blockHtml;
         if (options.fn) {
+            // block mode
             blockHtml = options.fn(this);
             if (blockHtml instanceof Handlebars.SafeString) {
                 blockHtml = blockHtml.string;
             }
-        }
-        if (!blockHtml) {
+        } else {
             blockHtml = '<div></div>';
         }
 
-        return new Handlebars.SafeString(watch.forHtml(blockHtml, function(node) {
-            target.node = node;
+        return new Handlebars.SafeString(watch.forHtml(blockHtml, function() {
+            target.nodes = Array.prototype.slice.call(arguments);
+        }, function() {
+            renderer.removeTarget(target);
         }));
     }
     Handlebars.registerHelper('renderer', rendererHelper);
@@ -235,12 +278,12 @@
             }
             matchingProps.forEach(function(key) {
                 if (valuePassedIn) {
-                    setProperty(context, key, value)
+                    setProperty(context, key, value);
                 }
                 if (fn.hasOwnProperty(key) && typeof fn[key] === 'function') {
                     fn[key]();
                 }
-            })
+            });
         };
         return fn;
     }
@@ -250,22 +293,32 @@
      * which then can be used to re-render any values from the context.
      */
     function modelHelper(key, options) {
+        if (typeof key !== 'string') { throw 'Expected a string as the first argument for model helper'; }
         var rendererKeyInContext = 'model';
-        if (options.data.root[rendererKeyInContext] === undefined) {
-            options.data.root[rendererKeyInContext] = getModelRenderer(this);
-        } else if (typeof options.data.root[rendererKeyInContext] !== 'function') {
-            throw 'Naming conflict, context already has something defined with the key "' + rendererKeyInContext + '".';
-        }
+
         var modelRenderer = options.data.root[rendererKeyInContext];
+        if (modelRenderer === undefined) {
+            options.data.root[rendererKeyInContext] = getModelRenderer(this);
+            modelRenderer = options.data.root[rendererKeyInContext];
+        } else {
+            if (typeof modelRenderer !== 'function') {
+                throw 'Naming conflict, context already has something defined with the key "' + rendererKeyInContext + '".';
+            }
+        }
         if (modelRenderer[key] === undefined) {
             modelRenderer[key] = createRenderer(function() {
                 var options = arguments[arguments.length - 1];
-                return options.fn ? options.fn(this) : readProperty(options.data.root, key);
+                var context = this;
+                if (options.fn) {
+                    return options.fn(context);
+                } else {
+                    return readProperty(options.data.root, key);
+                }
             });
         }
 
         var result = rendererHelper.call(this, modelRenderer[key], options);
-        modelRenderer(key);
+        modelRenderer.call(null, key);
         return result;
     }
     Handlebars.registerHelper('model', modelHelper);
@@ -274,6 +327,11 @@
      * Block-helper for getting access to an element from a template after it's added to the DOM.
      */
     function elementHelper(fn, options) {
+        if (typeof fn !== 'function') {
+            console.warn('No function provided for element helper.');
+            return arguments[0].fn(this); // no op
+        }
+
         var htmlToInit = options.fn(this);
         if (htmlToInit instanceof Handlebars.SafeString) {
             htmlToInit = htmlToInit.string;
@@ -289,7 +347,7 @@
      * Block-helper for getting access to a jquery wrapped element from a template after it's added to the DOM.
      */
     function jqHelper(fn, options) {
-        return elementHelper(function(element) { fn($(element)); }, options);
+        return elementHelper.call(this, function(element) { fn($(element)); }, options);
     }
     Handlebars.registerHelper('jq', jqHelper);
 
@@ -337,7 +395,7 @@
             value = value[name];
         });
         return value;
-    };
+    }
 
     function setProperty(object, property, newValue) {
         var value = object;
@@ -348,8 +406,27 @@
         var parts = property.split('.');
         for (var i = 0; i < parts.length - 1; i++) {
             value = value[parts[i]];
+            if (value === undefined) {
+                return;
+            }
         }
         value[parts[parts.length - 1]] = newValue;
+    }
+
+    function copyProperty(target, source, property) {
+        property = property.replace(/\[('|")?|('|")?\]/g, '.');
+        if (property.substring(property.length - 1) === '.') {
+            property = property.slice(0, property.length - 1);
+        }
+        var parts = property.split('.');
+        for (var i = 0; i < parts.length - 1; i++) {
+            source = source[parts[i]];
+            if (target[parts[i]] === undefined) {
+                target[parts[i]] = source;
+            }
+            target = target[parts[i]];
+        }
+        target[parts[parts.length - 1]] = source[parts[parts.length - 1]];
     }
 
     function getElementDefinedByHtmlIfAny(htmlString, element) {
@@ -395,10 +472,11 @@
         }
     }
 
+    //FIXME use the one used by watch.js
     function parseHtml(str) {
         var tmp = document.implementation.createHTMLDocument();
         tmp.body.innerHTML = str;
-        return tmp.body.children;
+        return tmp.body.childNodes;
     }
 
     return {
