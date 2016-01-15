@@ -173,7 +173,9 @@
                 if (target.nodes) {
                     doRender(html, target);
                 } else {
-                    watch.getIdentifiersIn(target.earlyRenderedHtml).forEach(watch.cancel);
+                    if (target.earlyRenderedHtml) {
+                        watch.getIdentifiersIn(target.earlyRenderedHtml).forEach(watch.cancel);
+                    }
                     target.earlyRenderedHtml = html;
                 }
             });
