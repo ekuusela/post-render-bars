@@ -23,9 +23,10 @@
 
     var idCounter = 0;
     var idPrefix = '_watched_';
-	var idSuffix = '_';
+    var idSuffix = '_';
     var watchIdentifierRegExp = new RegExp(idPrefix + '[0-9]+' + idSuffix, 'g');
     var observers = {};
+    var interruptedCallbacks = {};
 
     /**
      * Starts watching the body for addition of Nodes described by the given HTML string.
@@ -45,22 +46,22 @@
         var nodes = parseHtml(html);
 
         Array.prototype.forEach.call(nodes, function(node) {
-        	addIdentifier(node, identifier);
+            addIdentifier(node, identifier);
         });
         var html = nodesToStr(nodes);
 
         var onMutate = function() {
             return function(records) {
                 var elements = allAddedNodes(records).filter(function(node) {
-					if (node.nodeType === 3) {
-						return node.nodeValue.substr(0, identifier.length) === identifier;
-					} else {
-						return node.classList.contains(identifier);
-					}
-				});
+                    if (node.nodeType === 3) {
+                        return node.nodeValue.substr(0, identifier.length) === identifier;
+                    } else {
+                        return node.classList.contains(identifier);
+                    }
+                });
 
                 if (elements.length > 0) {
-                	doStopWatching(identifier);
+                    doStopWatching(identifier);
                     for (var i = elements.length - 1; i >= 0; i--) {
                         var element = elements[i];
                         removeIdentifier(element, identifier);
@@ -75,51 +76,52 @@
         observers[identifier] = observer;
 
         if (typeof cancelCallback === 'function') {
-            onWatchingInterrupted(identifier, cancelCallback);
+            onCancel(identifier, cancelCallback);
         }
 
         return html;
     }
 
+    /**
+     * Stop watching and trigger any interrupted callbacks.
+     */
     function cancel(identifier) {
-		if (observers[identifier]) {
-			if (interruptedCallbacks[identifier]) {
-				interruptedCallbacks[identifier].forEach(function(fn) {
-					fn();
-				});
-			}
+        if (observers[identifier]) {
+            if (interruptedCallbacks[identifier]) {
+                interruptedCallbacks[identifier].forEach(function(fn) {
+                    fn();
+                });
+            }
             doStopWatching(identifier);
-		}
+        }
     }
 
-	var interruptedCallbacks = {};
-
-	function onWatchingInterrupted(identifier, fn) {
-		if (!interruptedCallbacks[identifier]) {
-			interruptedCallbacks[identifier] = [];
-		}
-		interruptedCallbacks[identifier].push(fn);
-	}
+    function onCancel(identifier, fn) {
+        if (!interruptedCallbacks[identifier]) {
+            interruptedCallbacks[identifier] = [];
+        }
+        interruptedCallbacks[identifier].push(fn);
+    }
 
     /**
      * Stops watching for changes for the given identifier. Deletes references related to it.
      */
     function doStopWatching(identifier) {
         delete interruptedCallbacks[identifier];
-    	observers[identifier].disconnect();
+        observers[identifier].disconnect();
         delete observers[identifier];
     }
 
     function allAddedNodes(records) {
-    	var nodes = [];
-    	var addWithChildren = function(node) {
-    		nodes.push(node);
-    		Array.prototype.forEach.call(node.childNodes, addWithChildren);
-    	};
-    	records.forEach(function(record) {
-    		Array.prototype.forEach.call(record.addedNodes, addWithChildren);
-		});
-		return nodes;
+        var nodes = [];
+        var addWithChildren = function(node) {
+            nodes.push(node);
+            Array.prototype.forEach.call(node.childNodes, addWithChildren);
+        };
+        records.forEach(function(record) {
+            Array.prototype.forEach.call(record.addedNodes, addWithChildren);
+        });
+        return nodes;
     }
 
     function addIdentifier(node, identifier) {
@@ -131,13 +133,13 @@
     }
 
     function removeIdentifier(node, identifier) {
-    	if (node.nodeType === 3) {
+        if (node.nodeType === 3) {
             node.nodeValue = node.nodeValue.substr((identifier).length);
         } else {
             node.classList.remove(identifier);
-			if (node.classList.length === 0) {
-				node.removeAttribute('class');
-			}
+            if (node.classList.length === 0) {
+                node.removeAttribute('class');
+            }
         }
     }
 
@@ -148,25 +150,25 @@
     }
 
     // TODO use this wrapmap to be fix parsing html when it comes to elements that can't appear just anywhere
-	var wrapMap = {
+    var wrapMap = {
 
-		option: [ 1, "<select multiple='multiple'>", "</select>" ],
-		thead: [ 1, "<table>", "</table>" ],
-		col: [ 2, "<table><colgroup>", "</colgroup></table>" ],
-		tr: [ 2, "<table><tbody>", "</tbody></table>" ],
-		td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
+        option: [ 1, "<select multiple='multiple'>", "</select>" ],
+        thead: [ 1, "<table>", "</table>" ],
+        col: [ 2, "<table><colgroup>", "</colgroup></table>" ],
+        tr: [ 2, "<table><tbody>", "</tbody></table>" ],
+        td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
 
-		_default: [ 0, "", "" ]
-	};
+        _default: [ 0, "", "" ]
+    };
 
     wrapMap.optgroup = wrapMap.option;
     wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
     wrapMap.th = wrapMap.td;
 
     function parseHtml(str) {
-    	if (str === '') {
-			return [document.createTextNode('')];
-    	}
+        if (str === '') {
+            return [document.createTextNode('')];
+        }
         var tmp = document.implementation.createHTMLDocument();
         tmp.body.innerHTML = str;
         return tmp.body.childNodes;
@@ -183,11 +185,11 @@
 
     function getIdentifiersIn(str) {
         if (typeof str !== 'string') {
-        	return [];
-		}
+            return [];
+        }
         var matches = str.match(watchIdentifierRegExp);
         if (!matches) {
-			return [];
+            return [];
         }
         var unique = matches.filter(function(item, i){ return matches.indexOf(item) === i; });
         return unique;
@@ -195,9 +197,9 @@
 
     return {
         forHtml: forHtml,
-		cancel:cancel,
+        cancel:cancel,
         getElementWatchClasses: getElementWatchClasses,
         getIdentifiersIn: getIdentifiersIn,
-        onWatchingInterrupted: onWatchingInterrupted
+        onCancel: onCancel
     };
 }));

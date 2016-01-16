@@ -1,331 +1,345 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>QUnit Example</title>
-  <link rel="stylesheet" href="../node_modules/qunitjs/qunit/qunit.css">
-  <script src="../example/lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
-  <script src="../example/lib/handlebars-v4.0.5.js"></script>
-  <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-  <script src="../watch.js"></script>
-  <script src="../postHandlebars.js"></script>
+    <meta charset="utf-8">
+    <title>QUnit Example</title>
+    <link rel="stylesheet" href="../node_modules/qunitjs/qunit/qunit.css">
+    <!-- polyfill for MutationObserver -->
+    <script src="../example/lib/webcomponents-lite.min.js"></script>
+    <script src="../example/lib/handlebars-v4.0.5.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="../watch.js"></script>
+    <script src="../postHandlebars.js"></script>
 </head>
 <body>
-  <div id="qunit"></div>
-  <div id="qunit-fixture"></div>
-  <script src="../node_modules/qunitjs/qunit/qunit.js"></script>
-  <script type="text/javascript">
-    var fixture = $('#qunit-fixture');
-    QUnit.test('watch for a single text node', function(assert) {
-      var done = assert.async();
-      var text = watch.forHtml('text node', function(node) {
-        assert.ok(fixture.html() === 'text node', 'appended text is unaltered');
-        node.nodeValue = 'changed';
-        assert.ok(fixture.html() === 'changed', 'node reference is intact');
-        done();
-      });
-      fixture.append(text);
-      console.log();
-    });
+    <div id="qunit"></div>
+    <div id="qunit-fixture"></div>
+    <script src="../node_modules/qunitjs/qunit/qunit.js"></script>
+    <script type="text/javascript">
+        var fixture = $('#qunit-fixture');
+        QUnit.test('watch for a single text node', function(assert) {
+            var done = assert.async();
+            var text = watch.forHtml('text node', function(node) {
+                assert.ok(fixture.html() === 'text node', 'appended text is unaltered');
+                node.nodeValue = 'changed';
+                assert.ok(fixture.html() === 'changed', 'node reference is intact');
+                done();
+            });
+            fixture.append(text);
+        });
 
-    QUnit.test('nested watch triggers both callbacks', function(assert) {
-      assert.expect(2);
-      var done1 = assert.async();
-      var done2 = assert.async();
-      var div = '<div></div>';
-      var watched = watch.forHtml(div, function(node) {
-        $(node).append('one');
-        assert.equal($(fixture).find('div').html(), 'one');
-        done1();
-      });
+        QUnit.test('nested watch triggers both callbacks', function(assert) {
+            assert.expect(2);
+            var done1 = assert.async();
+            var done2 = assert.async();
+            var div = '<div></div>';
+            var watched = watch.forHtml(div, function(node) {
+                $(node).append('one');
+                assert.equal($(fixture).find('div').html(), 'one');
+                done1();
+            });
 
-      var watchedTwice = watch.forHtml(watched, function(node) {
-        $(node).append('two');
-        assert.equal($(fixture).find('div').html(), 'onetwo');
-        done2();
-      });
-      fixture.append(watchedTwice);
-    });
+            var watchedTwice = watch.forHtml(watched, function(node) {
+                $(node).append('two');
+                assert.equal($(fixture).find('div').html(), 'onetwo');
+                done2();
+            });
+            fixture.append(watchedTwice);
+        });
 
-    QUnit.test('model helper inside element helper work together', function(assert) {
-      assert.expect(2);
-      var done1 = assert.async();
-      var done2 = assert.async();
-      var template = Handlebars.compile("{{#element callback}}<button>{{#model 'text'}}{{text}}{{/model}}</button>{{/element}}");
-      var context = {
-        text: undefined,
-        callback: function(button) {
-          assert.equal(button, fixture.find('button')[0], 'element helper gets the button');
-          done1();
-        }
-      };
-      var executed = template(context);
-      fixture.append(executed);
-      context.model('text', 'click me');
-      setTimeout(function() {
-        assert.equal(fixture.find('button').html(), 'click me', 'model helper updates text to button');
-        done2();
-      }, 0);
-    });
-    
-    QUnit.test('model inside each, accessing proper context', function(assert) {
-        var template = Handlebars.compile("<h1>{{value}}</h1><ul>{{#each list}}{{#model 'value'}}<li>{{value}}</li>{{/model}}{{/each}}</ul>");
-        var context = {
-            value: 'root value',
-            list: [{value: 'list value 1'}]
-        };
-        var executed = template(context);
-        fixture.append(executed);
-        
-        assert.equal(fixture.find('ul li').html(), 'list value 1', 'li value rendered');  
-        
-        context.value = 'updated root value';
-        context.list[0].value = 'updated list value 1';
-        context.model('value')
-        
-        var done = assert.async();
-        setTimeout(function() {
-            assert.equal(fixture.find('h1').html(), 'root value', 'root value not updated');  
-            assert.equal(fixture.find('ul li').html(), 'updated list value 1', 'li value updated');  
-            done();
-        }, 0);
-    });
+        QUnit.test('model helper inside element helper work together', function(assert) {
+            assert.expect(2);
+            var done1 = assert.async();
+            var done2 = assert.async();
+            var template = Handlebars.compile("{{#element callback}}<button>{{#model 'text'}}{{text}}{{/model}}</button>{{/element}}");
+            var context = {
+                text: undefined,
+                callback: function(button) {
+                    assert.equal(button, fixture.find('button')[0], 'element helper gets the button');
+                    done1();
+                }
+            };
+            var executed = template(context);
+            fixture.append(executed);
+            context.model('text', 'click me');
+            setTimeout(function() {
+                assert.equal(fixture.find('button').html(), 'click me', 'model helper updates text to button');
+                done2();
+            }, 0);
+        });
 
-    QUnit.test('model updated inside a partial', function(assert) {
-      var partial = "count: {{#model 'count'}}<span>{{count}}</span>{{/model}}";
-      Handlebars.registerPartial('countDisplay', partial);
-      var template = Handlebars.compile('<p>count reports follow: {{> countDisplay}}</p>');
-      var context = {count: 1};
+        QUnit.test('model inside each, accessing proper context', function(assert) {
+            var template = Handlebars.compile("<h1>{{value}}</h1><ul>{{#each list}}{{#model 'value'}}<li>{{value}}</li>{{/model}}{{/each}}</ul>");
+            var context = {
+                value: 'root value',
+                list: [{
+                    value: 'list value 1'
+                }]
+            };
+            var executed = template(context);
+            fixture.append(executed);
 
-      fixture.append(template(context));
-      context.model('count', 2);
+            assert.equal(fixture.find('ul li').html(), 'list value 1', 'li value rendered');
 
-      var done = assert.async();
-      setTimeout(function() {
-        assert.equal(fixture.find('span').html(), '2', 'span changed to have an updated value');  
-        done();
-      }, 0);
-    });
+            context.value = 'updated root value';
+            context.list[0].value = 'updated list value 1';
+            context.model('value')
 
-    QUnit.test('multiple models same key different context', function(assert) {
-      var partial = "{{#model 'count'}}<i>{{count}}</i>{{/model}}";
-      Handlebars.registerPartial('countDisplay', partial);
-      // note: this test has a point: altering the context in any way changes how handlebars functions
-      // that's why even an unused value can mess things up
-      var template = Handlebars.compile("<p>{{> countDisplay}}{{> countDisplay unusedValue='this is not used' self=true}}</p>");
-      var context = {count: 1};
+            var done = assert.async();
+            setTimeout(function() {
+                assert.equal(fixture.find('h1').html(), 'root value', 'root value not updated');
+                assert.equal(fixture.find('ul li').html(), 'updated list value 1', 'li value updated');
+                done();
+            }, 0);
+        });
 
-      fixture.append(template(context));
-      context.model('count', 2);
+        QUnit.test('model updated inside a partial', function(assert) {
+            var partial = "count: {{#model 'count'}}<span>{{count}}</span>{{/model}}";
+            Handlebars.registerPartial('countDisplay', partial);
+            var template = Handlebars.compile('<p>count reports follow: {{> countDisplay}}</p>');
+            var context = {
+                count: 1
+            };
 
-      var done = assert.async();
-      setTimeout(function() {
-        assert.equal(fixture.find('p').html(), '<i>2</i><i>2</i>', 'both updated');  
-        done();
-      }, 0);
-    });
+            fixture.append(template(context));
+            context.model('count', 2);
 
-    QUnit.test('model wrapped in a model updated inside a partial', function(assert) {
-      var partial = 
-        "count:<br>" + 
-        "{{#model 'anotherValue'}}" + 
-          "<div>{{#model 'count'}}<span>{{count}}{{anotherValue}}</span>{{/model}}</div>" +
-        "{{/model}}";
-      Handlebars.registerPartial('countDisplay', partial);
-      var template = Handlebars.compile("<p>count reports follow: {{> countDisplay}}</p>");
-      var context = {count: 1};
+            var done = assert.async();
+            setTimeout(function() {
+                assert.equal(fixture.find('span').html(), '2', 'span changed to have an updated value');
+                done();
+            }, 0);
+        });
 
-      fixture.append(template(context));
-      context.model('count', 2);
-      context.model('anotherValue', 'more text');
+        QUnit.test('multiple models same key different context', function(assert) {
+            var partial = "{{#model 'count'}}<i>{{count}}</i>{{/model}}";
+            Handlebars.registerPartial('countDisplay', partial);
+            // note: this test has a point: altering the context in any way changes how handlebars functions
+            // that's why even an unused value can mess things up
+            var template = Handlebars.compile("<p>{{> countDisplay}}{{> countDisplay unusedValue='this is not used' self=true}}</p>");
+            var context = {
+                count: 1
+            };
 
-      var done = assert.async();
-      setTimeout(function() {
-        assert.equal(fixture.find('span').html(), '2more text', 'span changed to have an updated value');  
-        done();
-      }, 0);
-    });
+            fixture.append(template(context));
+            context.model('count', 2);
 
-    QUnit.test('model updated inside a partial included with hash args', function(assert) {
-      var partial = "count: {{#model 'count'}}<span>{{count.value}}</span>{{/model}}{{a.type}}";
-      Handlebars.registerPartial('countDisplay', partial);
-      var template = Handlebars.compile("<p>count reports follow: {{> countDisplay count=count}}</p>");
-      var context = {count: {value: 1}, a: {type: 'count'}};
+            var done = assert.async();
+            setTimeout(function() {
+                assert.equal(fixture.find('p').html(), '<i>2</i><i>2</i>', 'both updated');
+                done();
+            }, 0);
+        });
 
-      fixture.append(template(context));
-      context.count.value = 2;
-      context.model('count.value');
-      context.model('count'); // TODO: this propably should be triggered by the above when {{#model 'count'}} is present
-      var done = assert.async();
-      setTimeout(function() {
-        assert.equal(fixture.find('span').html(), '2', 'span changed to have an updated value');  
-        done();
-      }, 0);
-    });
+        QUnit.test('model wrapped in a model updated inside a partial', function(assert) {
+            var partial =
+                "count:<br>" +
+                "{{#model 'anotherValue'}}" +
+                "<div>{{#model 'count'}}<span>{{count}}{{anotherValue}}</span>{{/model}}</div>" +
+                "{{/model}}";
+            Handlebars.registerPartial('countDisplay', partial);
+            var template = Handlebars.compile("<p>count reports follow: {{> countDisplay}}</p>");
+            var context = {
+                count: 1
+            };
 
-    QUnit.test('model wrapped inside element inside a partial included with hash arg', function(assert) {
-      var partial = "{{#element button}}\n\n<button type=\"button\" class=\"fancy\"><div class=\"small\">\n{{#model 'date'}}\n<span>{{date}}</span>\n{{/model}}</div>\n</button>\n{{/element}}";
-      Handlebars.registerPartial('countDisplay', partial);
-      var template = Handlebars.compile("{{> countDisplay button=button}}");
-      var elementForCallback;
-      var context = {
-        button: function(element) {
-          elementForCallback = element;
-          element.addEventListener('click', function() {
-              context.date = new Date().getTime();
-              context.model('date');
-              console.log('clicked');
-          });
-        },
-        date: new Date().getTime()
-      };
+            fixture.append(template(context));
+            context.model('count', 2);
+            context.model('anotherValue', 'more text');
 
-      fixture.append(template(context));
+            var done = assert.async();
+            setTimeout(function() {
+                assert.equal(fixture.find('span').html(), '2more text', 'span changed to have an updated value');
+                done();
+            }, 0);
+        });
 
-      var done = assert.async();
-      setTimeout(function() {
-        fixture.find('button').trigger('click');
-        assert.equal(fixture.find('span').html(), context.date, 'span changed to have an updated value');
-        assert.equal(fixture.find('button')[0], elementForCallback, 'callback gets the proper element');
-        done();
-      }, 10);
-    });
+        QUnit.test('model updated inside a partial included with hash args', function(assert) {
+            var partial = "count: {{#model 'count'}}<span>{{count.value}}</span>{{/model}}{{a.type}}";
+            Handlebars.registerPartial('countDisplay', partial);
+            var template = Handlebars.compile("<p>count reports follow: {{> countDisplay count=count}}</p>");
+            var context = {
+                count: {
+                    value: 1
+                },
+                a: {
+                    type: 'count'
+                }
+            };
 
-    QUnit.test('can update siblings with model', function(assert) {
-      var template = 
-          "{{#model 'value'}}" +
-            "<div>{{value}}</div>" +
-            "<div>{{value}}</div>" +
-          "{{/model}}";
-      template = Handlebars.compile(template);
-      var context = {
-        value: 'old value'
-      };
+            fixture.append(template(context));
+            context.count.value = 2;
+            context.model('count.value');
+            context.model('count'); // TODO: this propably should be triggered by the above when {{#model 'count'}} is present
+            var done = assert.async();
+            setTimeout(function() {
+                assert.equal(fixture.find('span').html(), '2', 'span changed to have an updated value');
+                done();
+            }, 0);
+        });
 
-      fixture.append(template(context));
-           
-      var done = assert.async();
-      setTimeout(function() {
-        context.model('value', 'new value');  
-        assert.equal(fixture.html(), '<div>new value</div><div>new value</div>', 'both divs changed to have an updated value');  
-        done();
-      }, 0);
-    });
+        QUnit.test('model wrapped inside element inside a partial included with hash arg', function(assert) {
+            var partial = "{{#element button}}\n\n<button type=\"button\" class=\"fancy\"><div class=\"small\">\n{{#model 'date'}}\n<span>{{date}}</span>\n{{/model}}</div>\n</button>\n{{/element}}";
+            Handlebars.registerPartial('countDisplay', partial);
+            var template = Handlebars.compile("{{> countDisplay button=button}}");
+            var elementForCallback;
+            var context = {
+                button: function(element) {
+                    elementForCallback = element;
+                    element.addEventListener('click', function() {
+                        context.date = new Date().getTime();
+                        context.model('date');
+                        console.log('clicked');
+                    });
+                },
+                date: new Date().getTime()
+            };
 
-    QUnit.test('can update nested models', function(assert) {
-      var template = 
-          "{{#model 'count'}}" +
-            "<button>" +
-                "<div>{{count}}</div>"+
+            fixture.append(template(context));
+
+            var done = assert.async();
+            setTimeout(function() {
+                fixture.find('button').trigger('click');
+                assert.equal(fixture.find('span').html(), context.date, 'span changed to have an updated value');
+                assert.equal(fixture.find('button')[0], elementForCallback, 'callback gets the proper element');
+                done();
+            }, 10);
+        });
+
+        QUnit.test('can update siblings with model', function(assert) {
+            var template =
+                "{{#model 'value'}}" +
+                "<div>{{value}}</div>" +
+                "<div>{{value}}</div>" +
+                "{{/model}}";
+            template = Handlebars.compile(template);
+            var context = {
+                value: 'old value'
+            };
+
+            fixture.append(template(context));
+
+            var done = assert.async();
+            setTimeout(function() {
+                context.model('value', 'new value');
+                assert.equal(fixture.html(), '<div>new value</div><div>new value</div>', 'both divs changed to have an updated value');
+                done();
+            }, 0);
+        });
+
+        QUnit.test('can update nested models', function(assert) {
+            var template =
+                "{{#model 'count'}}" +
+                "<button>" +
+                "<div>{{count}}</div>" +
                 "{{#model 'nestedCount'}}" +
-                  "<span>{{count}} - {{nestedCount}}</span>" +
-                "{{/model}}" + 
-            "</button>" +
-          "{{/model}}";
-      template = Handlebars.compile(template);
-      var elementFnRun = false;
-      var context = {
-        count: 1,
-        nestedCount: 2
-      };
+                "<span>{{count}} - {{nestedCount}}</span>" +
+                "{{/model}}" +
+                "</button>" +
+                "{{/model}}";
+            template = Handlebars.compile(template);
+            var elementFnRun = false;
+            var context = {
+                count: 1,
+                nestedCount: 2
+            };
 
-      fixture.append(template(context));
-      context.model('count', 0);
-      context.model('nestedCount', 0);
-      context.model('count', 2);
-      context.model('nestedCount', 4);
-      
-      var done = assert.async();
-      setTimeout(function() {
-        assert.equal(fixture.find('button div').html(), '2', 'changed to have an updated value');  
-        assert.equal(fixture.find('span').html(), '2 - 4', 'changed to have an updated value');  
+            fixture.append(template(context));
+            context.model('count', 0);
+            context.model('nestedCount', 0);
+            context.model('count', 2);
+            context.model('nestedCount', 4);
 
-        done();
+            var done = assert.async();
+            setTimeout(function() {
+                assert.equal(fixture.find('button div').html(), '2', 'changed to have an updated value');
+                assert.equal(fixture.find('span').html(), '2 - 4', 'changed to have an updated value');
 
-      }, 0);
-    });
+                done();
 
-    QUnit.test('nested models memory usage', function(assert) {
-      // TODO nested model renderers leak memory (renderer targets keep piling on since the nested helper is re-created)
-      
-      var template = 
-          "{{#model 'count'}}" +
-            "<button>" +
-                "<div>{{count}}</div>"+
+            }, 0);
+        });
+
+        QUnit.test('nested models memory usage', function(assert) {
+            // TODO nested model renderers leak memory (renderer targets keep piling on since the nested helper is re-created)
+
+            var template =
+                "{{#model 'count'}}" +
+                "<button>" +
+                "<div>{{count}}</div>" +
                 "{{#model 'nestedCount'}}" +
-                  "<span>{{count}} - {{nestedCount}}</span>" +
-                "{{/model}}" + 
-            "</button>" +
-          "{{/model}}";
-      template = Handlebars.compile(template);
-      var elementFnRun = false;
-      var context = {
-        count: 1,
-        nestedCount: 2
-      };
+                "<span>{{count}} - {{nestedCount}}</span>" +
+                "{{/model}}" +
+                "</button>" +
+                "{{/model}}";
+            template = Handlebars.compile(template);
+            var elementFnRun = false;
+            var context = {
+                count: 1,
+                nestedCount: 2
+            };
 
-      fixture.append(template(context));
-	  
-	  context.model('count', i);
-	  context.model('count', i);
-	  context.model('count', i);
-	  
-      for (var i = 0; i < 50; i++) {
-        context.model('count', i);
-        context.model('nestedCount', i);
-      }
-      
-      var done = assert.async();
-      setTimeout(function() {
-        for (var i = 0; i < 50; i++) {
-          context.model('count', i);
-          context.model('nestedCount', i);
-        }
+            fixture.append(template(context));
 
-        setTimeout(function() {
-          assert.equal(fixture.find('button div').html(), '49', 'changed to have an updated value');  
-          assert.equal(fixture.find('span').html(), '49 - 49', 'changed to have an updated value');  
-          assert.ok(true);
-        done();
-        }, 0)
-      }, 0);
-    });
+            context.model('count', i);
+            context.model('count', i);
+            context.model('count', i);
 
-    QUnit.test('model updated while wrapped by element helper inside a partial', function(assert) {
-      var partial = 
-        "{{#element elementFn}}" +
-          "{{#model 'count'}}" +
-            "<button>{{count}}</button>" +
+            for (var i = 0; i < 50; i++) {
+                context.model('count', i);
+                context.model('nestedCount', i);
+            }
 
-            "{{#model 'nestedCount'}}" +
-              "<span>{{count}} - {{nestedCount}}</span>" +
-            "{{/model}}" + 
+            var done = assert.async();
+            setTimeout(function() {
+                for (var i = 0; i < 50; i++) {
+                    context.model('count', i);
+                    context.model('nestedCount', i);
+                }
 
-          "{{/model}}" +
-        "{{/element}}";
-      Handlebars.registerPartial('buttonCount', partial);
-      var template = Handlebars.compile('<p>count reports follow: {{> buttonCount}}</p>');
-      var elementFnRun = false
-      var context = {
-        count: 1,
-        nestedCount: 2,
-        elementFn: function(node) {
-          elementFnRun = true;
-        }
-      };
+                setTimeout(function() {
+                    assert.equal(fixture.find('button div').html(), '49', 'changed to have an updated value');
+                    assert.equal(fixture.find('span').html(), '49 - 49', 'changed to have an updated value');
+                    assert.ok(true);
+                    done();
+                }, 0)
+            }, 0);
+        });
 
-      fixture.append(template(context));
-      
-      var done = assert.async();
-      setTimeout(function() {
-        context.model('count', 2);
-        context.model('nestedCount', 4);
-        assert.equal(fixture.find('button').html(), '2', 'changed to have an updated value');  
-        assert.ok(elementFnRun === true, 'element helper callback fired');
-        done();
-      }, 0);
-    });
+        QUnit.test('model updated while wrapped by element helper inside a partial', function(assert) {
+            var partial =
+                "{{#element elementFn}}" +
+                "{{#model 'count'}}" +
+                "<button>{{count}}</button>" +
 
-  </script>
+                "{{#model 'nestedCount'}}" +
+                "<span>{{count}} - {{nestedCount}}</span>" +
+                "{{/model}}" +
+
+                "{{/model}}" +
+                "{{/element}}";
+            Handlebars.registerPartial('buttonCount', partial);
+            var template = Handlebars.compile('<p>count reports follow: {{> buttonCount}}</p>');
+            var elementFnRun = false
+            var context = {
+                count: 1,
+                nestedCount: 2,
+                elementFn: function(node) {
+                    elementFnRun = true;
+                }
+            };
+
+            fixture.append(template(context));
+
+            var done = assert.async();
+            setTimeout(function() {
+                context.model('count', 2);
+                context.model('nestedCount', 4);
+                assert.equal(fixture.find('button').html(), '2', 'changed to have an updated value');
+                assert.ok(elementFnRun === true, 'element helper callback fired');
+                done();
+            }, 0);
+        });
+    </script>
 </body>
 </html>
