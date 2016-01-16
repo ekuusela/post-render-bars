@@ -83,13 +83,12 @@
 
     function cancel(identifier) {
 		if (observers[identifier]) {
-			doStopWatching(identifier);
 			if (interruptedCallbacks[identifier]) {
 				interruptedCallbacks[identifier].forEach(function(fn) {
 					fn();
 				});
-				interruptedCallbacks[identifier].length = 0;
 			}
+            doStopWatching(identifier);
 		}
     }
 
@@ -102,9 +101,13 @@
 		interruptedCallbacks[identifier].push(fn);
 	}
 
+    /**
+     * Stops watching for changes for the given identifier. Deletes references related to it.
+     */
     function doStopWatching(identifier) {
+        delete interruptedCallbacks[identifier];
     	observers[identifier].disconnect();
-    	observers[identifier] = undefined;
+        delete observers[identifier];
     }
 
     function allAddedNodes(records) {
