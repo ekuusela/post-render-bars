@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="../node_modules/qunitjs/qunit/qunit.css">
     <!-- polyfill for MutationObserver -->
     <script src="../example/lib/webcomponents-lite.min.js"></script>
-    <script src="../example/lib/handlebars-v4.0.5.js"></script>
+    <script src="../node_modules/handlebars/dist/handlebars.js"></script>
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="../parseHtml.js"></script>
     <script src="../watch.js"></script>
@@ -27,7 +27,10 @@
                 assert.ok(fixture.html() === 'changed', 'node reference is intact');
                 done();
             });
-            setTimeout(function() { assert.ok(false, 'watch timed out') }, 500)
+            setTimeout(function() {
+                assert.ok(false, 'watch timed out')
+                done();
+            }, 500);
             fixture.append(text);
         });
 
@@ -39,7 +42,10 @@
                 assert.ok(fixture.html() === 'changed', 'node reference is intact');
                 done();
             });
-            setTimeout(function() { assert.ok(false, 'watch timed out') }, 500)
+            setTimeout(function() {
+                assert.ok(false, 'watch timed out')
+                done();
+            }, 500);
             fixture.append(text);
         });
 
@@ -51,7 +57,10 @@
                 assert.ok(fixture.html() === 'other text changed more text', 'node reference is intact');
                 done();
             });
-            setTimeout(function() { assert.ok(false, 'watch timed out') }, 500)
+            setTimeout(function() {
+                assert.ok(false, 'watch timed out')
+                done();
+            }, 500);
             fixture.append('other text ' + text + ' more text');
         });
 

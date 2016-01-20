@@ -1,0 +1,6 @@
+node_modules/*
+!node_modules/handlebars
+node_modules/handlebars/*
+!node_modules/handlebars/dist
+node_modules/handlebars/dist/*
+!node_modules/handlebars/dist/handlebars.js
