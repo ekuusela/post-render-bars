@@ -1,11 +1,13 @@
 <html>
     <head>
         <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
-        <script src="lib/handlebars-v4.0.5.js"></script>
+        <script src="../node_modules/handlebars/dist/handlebars.js"></script>
 
         <script src="templates/templates.js"></script> <!-- pre-compiled templates -->
+        <script src="../parseHtml.js"></script>
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
+        <script src="../helpers.js"></script>
         <style>
             body { font-family: sans-serif; font-size: 16px; }
             code { font-size: 14px; }
@@ -16,6 +18,7 @@
         </style>
     </head>
     <body>
+
         <p>Examples of how to use post-render-bars utilities. View source for more details and comments.</p>
         <p><a href="withjquery.html">Examples for use with jQuery</a></p>
         <a href="https://github.com/ekuusela/post-render-bars">View the Project on GitHub <small>ekuusela/post-render-bars</small></a>
@@ -60,19 +63,45 @@
         <p>Provides the same possibilities as the renderer helper but requires less code to setup.</p>
         <div id="model-binding-result" class="result"></div>
         <script id="model-binding-template" type="text/x-handlebars-template">
+            {{renderer textRenderer}}
+
             values from context:
+            {{> fancy-button button=button}}
             {{model 'one'}}
             {{model 'two'}}
             {{model 'test.nested'}}
+
             {{#model 'date'}}<p>{{dateToIso date}}</p>{{/model}}
+
             {{#model 'currentUser'}}<p>{{> person currentUser}}</p>{{/model}}
             {{#model 'version'}}<p>{{version.major}}.{{version.minor}}</p>{{/model}}
-            {{#element button}}{{> fancy-button action='Update'}}{{/element}}
+
+            {{> fancy-button}}<br>
+
+
             {{#model 'date'}}<p>{{dateToIso date}}</p>{{/model}}
-            {{#element button}}{{#model 'action'}}{{> fancy-button}}{{/model}}{{/element}}
+            {{> fancy-button button=button}}
+            list:
+            {{#model 'test.list'}}
+                <p>
+                {{#each test.list}}
+                        {{> fancy-button ../this text=text}}
+                {{else}}
+                        empty list
+                {{/each}}
+                </p>
+            {{/model}}
+
         </script>
         <script id="fancy-button-partial" type="text/x-handlebars-template">
-            <button type="button" class="fancy">{{action}}<div class="small">Previous update at: {{model 'date'}}</div></button>
+                {{#element button}}
+
+                        <button type="button" class="fancy">
+                            {{text}}
+                            <div class="small">Previous update at: {{#model 'date'}}<span>{{date}}</span>{{/model}}</div>
+                        </button>
+
+                {{/element}}
         </script>
         <script id="person-partial" type="text/x-handlebars-template">
             full name is {{first}} {{last}}
@@ -125,7 +154,7 @@
             // Example 3: using renderer helper to update content in a template after rendering it
             Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
             var dynamicContainer = document.getElementById('example3');
-            var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
+            var timeRenderer = helpers.createRenderer(function() { return new Date(); });
             dynamicContainer.innerHTML = Handlebars.templates['dynamic-template']({time: timeRenderer});
             setInterval(timeRenderer, 1000);
 
@@ -140,13 +169,12 @@
             Handlebars.templates['fancy-button'] = Handlebars.compile(document.getElementById('fancy-button-partial').innerHTML);
             Handlebars.templates['person'] = Handlebars.compile(document.getElementById('person-partial').innerHTML);
             var modelBindingContainer = document.getElementById('model-binding-result');
-            var modelRenderer = postHandlebars.getModelRenderer();
-            var obj = {nested: ''};
+            var obj = {nested: '', list: [{text: 'update'}, {text: 'yes'}, {text: 'go ahead'}]};
             var context = {
-                model: modelRenderer,
+                textRenderer: helpers.createRenderer(),
                 one: 'value one',
                 two: 'value two',
-                action: 'Update',
+                buttonDetails: {action: 'Update'},
                 currentUser: {first: 'John', last: 'Doe'},
                 date: new Date(),
                 test: obj,
@@ -154,27 +182,36 @@
                 button: function(element) {
                     element.addEventListener('click', function() {
                         context.date = new Date();
-                        modelRenderer('date');
+                        context.model('date');
                         console.log('clicked');
                     });
                 }
             };
-            modelBindingContainer.innerHTML = Handlebars.templates['model-binding-template'](context);
+            var executed = Handlebars.templates['model-binding-template'](context);
+            context.textRenderer('changed text');
 
-            context.two = 'new value for two';
-            modelRenderer('two');
+            modelBindingContainer.innerHTML = executed;
+            context.model('date');
 
-            obj.nested = 'new value for nested';
-            modelRenderer('test.nested');
+            context.model('two', 'new value for two');
+
+            context.model('test.nested', 'new value for nested');
+
+            context.test.list[1] = {text: 'yes, update'};
+            context.test.list[2].text = 'do update';
+            context.test.list.push({text: 'ok'});
+            context.model('test.list');
+
 
             context.version.minor = 1;
-            modelRenderer('version');
+            context.model('version');
 
             context.currentUser.first = 'Jane';
-            modelRenderer('currentUser');
+            context.model('currentUser.last', 'Roe');
+            context.model('currentUser');
 
-            context.action = 'Update!';
-            modelRenderer('action');
+            context.buttonDetails.action = 'Update!';
+            context.model('buttonDetails');
         </script>
     </body>
 </html>

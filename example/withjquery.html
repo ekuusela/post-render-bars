@@ -1,15 +1,18 @@
 <html>
     <head>
         <script src="lib/webcomponents-lite.min.js"></script> <!-- polyfill for MutationObserver -->
-        <script src="lib/handlebars-v4.0.5.js"></script>
+        <script src="../node_modules/handlebars/dist/handlebars.js"></script>
 
-         <!-- jquery or jquery ui are not needed by post-render-bars but used here for some examples -->
+         <!-- jquery only needed for jquery helpers and jquery ui only for an example -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
         <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
         <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" type="text/css">
 
+        <script src="../parseHtml.js"></script>
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
+        <script src="../helpers.js"></script>
+        <script src="../jQueryHelpers.js"></script>
         <style>
             body { font-family: sans-serif; font-size: 16px; }
             code { font-size: 14px; }
@@ -28,6 +31,13 @@
         <script id="ajax-template" type="text/x-handlebars-template">
             <p>Response from the url {{url}} below:</p>
             {{#renderer loadBacon}}<div>Loading...</div>{{/renderer}}
+        </script>
+
+        <h3>Similar example, conditionally displaying an image if it's found</h3>
+        <div id="ajax-img-result" class="result"></div>
+        <script id="ajax-img-template" type="text/x-handlebars-template">
+            <input type="text" value="http://i.imgur.com/KAVjr8b.jpg" style="width:400px"><button>load</button><br>
+            {{#renderer renderImg}}<img>{{/renderer}}
         </script>
 
         <h2>Define a jQuery element in a template</h2>
@@ -84,20 +94,43 @@
 
             // Re-rendering a part of template after ajax response
             templates['ajax-template'] = Handlebars.compile($('#ajax-template').html());
-            var context = {
+            var ajaxContext = {
                 url: 'https://baconipsum.com/api/?type=meat-and-filler&sentences=2',
-                loadBacon: postHandlebars.createRenderer()
+                loadBacon: helpers.createRenderer()
             };
-            $('#ajax-result').html(templates['ajax-template'](context));
+            $('#ajax-result').html(templates['ajax-template'](ajaxContext));
 
             $.ajax({
                 type: 'GET',
-                url: context.url
-            }).done(context.loadBacon);
+                url: ajaxContext.url
+            }).done(ajaxContext.loadBacon);
+
+            // Re-rendering img
+            templates['ajax-img-template'] = Handlebars.compile($('#ajax-img-template').html());
+            var ajaxImgContext = {
+                renderImg: helpers.createRenderer()
+            };
+
+            var loadAndRender = function(url) {
+                $.ajax({
+                    type: 'HEAD',
+                    url: url
+                }).done(function() {
+                    ajaxImgContext.renderImg('<img src="' + url + '" style="max-width:100px; max-height: 100px">');
+                }).fail(function() {
+                    ajaxImgContext.renderImg('<img style="display: none;">');
+                });
+            };
+
+            $('#ajax-img-result').html(templates['ajax-img-template'](ajaxImgContext));
+            $('#ajax-img-result button').on('click', function() {
+                loadAndRender($('#ajax-img-result input').val());
+            }).click();
+
 
             // Define a jQuery element in a template
             templates['jquery-element-template'] = Handlebars.compile($('#jquery-element-template').html());
-            var context = {
+            var jqueryElementContext = {
                 setHandler: function(element) {
                     element.on('click', function() {
                         var tzoffset = (new Date()).getTimezoneOffset() * 60000; //offset in milliseconds
@@ -106,7 +139,7 @@
                     });
                 }
             };
-            $('#jquery-element-result').html(templates['jquery-element-template'](context));
+            $('#jquery-element-result').html(templates['jquery-element-template'](jqueryElementContext));
 
 
             // Initializing a jQuery plugin within a template

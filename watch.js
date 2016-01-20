@@ -8,104 +8,174 @@
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define([], factory);
+        define(['parseHtml'], factory);
     } else if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
         // only CommonJS-like environments that support module.exports,
         // like Node.
-        module.exports = factory();
+        module.exports = factory(require('parseHtml'));
     } else {
         // Browser globals (root is window)
-        root.watch = factory();
+        root.watch = factory(root.parseHtml);
   }
-}(this, function () {
+}(this, function(parseHtml) {
     'use strict';
 
     var idCounter = 0;
-    var watchClassPrefix = '_watched_';
+    var idPrefix = '_watched_';
+    var idSuffix = '_';
+    var watchIdentifierRegExp = new RegExp(idPrefix + '[0-9]+' + idSuffix, 'g');
+    var observers = {};
+    var interruptedCallbacks = {};
 
     /**
-     * Starts watching the body for addition of a Node described by the given HTML string.
+     * Starts watching the body for addition of Nodes described by the given HTML string.
      *
-     * Modifies the first element in the HTML string to have a class attribute or appends a new class if it already has one.
+     * Modifies the nodes in the HTML string to be identifiably by a class or prepended piece of text.
      *
-     * When an element with the class is encountered, the class list is restored/removed and the callback is invoked.
+     * When an element with the identifier is encountered, the identifier is removed and the callback is invoked.
      *
      * Returns the modified HTML, which is the one that should be added to the document for the callback to trigger.
      *
-     * The callback gets the first element as an argument.
+     * The callback gets the elements as arguments.
      */
-    function forHtml(html, callback) {
+    function forHtml(html, callback, cancelCallback) {
         idCounter += 1;
-        var className = watchClassPrefix + idCounter;
-        var result = appendToClass(html, className);
-        if (!result) { return html; }
-        html = result;
+        var identifier = idPrefix + idCounter + idSuffix;
+        html = html.trim();
+        var nodes = parseHtml(html);
+
+        Array.prototype.forEach.call(nodes, function(node) {
+            addIdentifier(node, identifier);
+        });
+        var html = nodesToStr(nodes);
 
         var onMutate = function() {
-            return function() {
-                var elements = document.getElementsByClassName(className);
+            return function(records) {
+                var elements = allAddedNodes(records).filter(function(node) {
+                    if (node.nodeType === 3) {
+                        // TODO detect text in the middle of the value and split node to multiple text nodes
+                        return node.nodeValue.substr(0, identifier.length) === identifier;
+                    } else {
+                        return node.classList.contains(identifier);
+                    }
+                });
+
                 if (elements.length > 0) {
-                    observer.disconnect();
+                    doStopWatching(identifier);
                     for (var i = elements.length - 1; i >= 0; i--) {
                         var element = elements[i];
-                        removeClass(element, className);
-                        callback(element);
+                        removeIdentifier(element, identifier);
                     }
+                    callback.apply(null, elements);
                 }
             };
         };
 
         var observer = new MutationObserver(onMutate());
         observer.observe(document.body, {childList: true, subtree: true});
+        observers[identifier] = observer;
+
+        if (typeof cancelCallback === 'function') {
+            onCancel(identifier, cancelCallback);
+        }
+
         return html;
     }
 
-    function appendToClass(html, className) {
-        html = html.trim();
-        var attributeStr = ' class="';
-        var attributeIndex = html.indexOf(attributeStr);
-        var closingIndex = html.indexOf('>');
-        if (closingIndex === -1) { return; }
-
-        var hasClass = attributeIndex > -1 && attributeIndex < closingIndex;
-        if (hasClass) {
-            var classIndex = html.indexOf('"', attributeIndex + attributeStr.length);
-            html = insert(html, classIndex, ' ' + className);
-        } else {
-            var spaceIndex = html.indexOf(' ');
-            var newClassIndex;
-            if (spaceIndex === -1) {
-                newClassIndex = closingIndex;
-            } else {
-                newClassIndex = Math.min(closingIndex, spaceIndex);
+    /**
+     * Stop watching and trigger any interrupted callbacks.
+     */
+    function cancel(identifier) {
+        if (observers[identifier]) {
+            if (interruptedCallbacks[identifier]) {
+                interruptedCallbacks[identifier].forEach(function(fn) {
+                    fn();
+                });
             }
-            html = insert(html, newClassIndex, ' class="' + className +'"');
-        }
-        return html;
-    }
-
-    function removeClass(element, className) {
-        element.classList.remove(className);
-        if (element.classList.length === 0) {
-            element.removeAttribute('class');
+            doStopWatching(identifier);
         }
     }
 
-    function insert(str, index, item) {
-        return str.slice(0, index) + item + str.slice(index);
+    function onCancel(identifier, fn) {
+        if (!interruptedCallbacks[identifier]) {
+            interruptedCallbacks[identifier] = [];
+        }
+        interruptedCallbacks[identifier].push(fn);
     }
 
-    var watchClassRegExp = new RegExp(watchClassPrefix + '[0-9]+');
+    /**
+     * Stops watching for changes for the given identifier. Deletes references related to it.
+     */
+    function doStopWatching(identifier) {
+        delete interruptedCallbacks[identifier];
+        observers[identifier].disconnect();
+        delete observers[identifier];
+    }
+
+    function allAddedNodes(records) {
+        var nodes = [];
+        var addWithChildren = function(node) {
+            nodes.push(node);
+            Array.prototype.forEach.call(node.childNodes, addWithChildren);
+        };
+        records.forEach(function(record) {
+            Array.prototype.forEach.call(record.addedNodes, addWithChildren);
+        });
+        return nodes;
+    }
+
+    function addIdentifier(node, identifier) {
+        if (node.nodeType === 3) {
+            node.nodeValue = identifier + node.nodeValue;
+        } else {
+            node.classList.add(identifier);
+        }
+    }
+
+    function removeIdentifier(node, identifier) {
+        if (node.nodeType === 3) {
+            node.nodeValue = node.nodeValue.substr((identifier).length);
+        } else {
+            node.classList.remove(identifier);
+            if (node.classList.length === 0) {
+                node.removeAttribute('class');
+            }
+        }
+    }
 
     function getElementWatchClasses(element) {
         return Array.prototype.filter.call(element.classList, function(name) {
-            return name.match(watchClassRegExp)
+            return name.match(watchIdentifierRegExp)
         });
+    }
+
+    /**
+     * Converts the given list of nodes to a string.
+     */
+    function nodesToStr(nodes) {
+        return Array.prototype.reduce.call(nodes, function(prev, node) {
+            return prev + (node.nodeType === 3 ? node.nodeValue : node.outerHTML);
+        }, '');
+    }
+
+    function getIdentifiersIn(str) {
+        if (typeof str !== 'string') {
+            return [];
+        }
+        var matches = str.match(watchIdentifierRegExp);
+        if (!matches) {
+            return [];
+        }
+        var unique = matches.filter(function(item, i){ return matches.indexOf(item) === i; });
+        return unique;
     }
 
     return {
         forHtml: forHtml,
-        getElementWatchClasses: getElementWatchClasses
+        cancel:cancel,
+        getElementWatchClasses: getElementWatchClasses,
+        getIdentifiersIn: getIdentifiersIn,
+        onCancel: onCancel
     };
 }));
