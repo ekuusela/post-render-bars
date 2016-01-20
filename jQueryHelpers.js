@@ -1,4 +1,6 @@
 /**
+ * Helpers that work together with jQuery elements.
+ *
  * @author Eero Kuusela
  */
  (function (root, factory) {
@@ -16,7 +18,7 @@
     }
 }(this, function($, Handlebars, watch, helpers) {
     'use strict';
-    
+
     /**
      * Block-helper for getting access to a jquery wrapped element from a template after it's added to the DOM.
      */
@@ -55,5 +57,5 @@
         }));
     }
     Handlebars.registerHelper('jqinit', jqinitHelper);
-    
+
 }));

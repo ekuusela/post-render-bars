@@ -1,4 +1,6 @@
 /**
+ * Helpers that work together with DOM elements
+ *
  * @author Eero Kuusela
  */
  (function (root, factory) {
@@ -16,7 +18,7 @@
     }
 }(this, function(Handlebars, watch) {
     'use strict';
-    
+
    /**
      * Creates and returns a renderer function to be used together with the renderer helper.
      *
@@ -25,8 +27,8 @@
      *
      * The renderer can be invoked multiple times before or after the template has been added to the DOM.
      *
-     * The callback should return a string of HTML (or something castable to a string). The string can re-define the entire element defined in the block
-     * or contents for that element.
+     * The callback should return a string of HTML (or something castable to a string). The string can re-define the element(s) defined in the block
+     * or contents for the first element.
      *
      * @param {function(): string} [getHtmlContentFn] the renderer function, defaults to a function that takes in and returns a single argument
      * @return {function()} renderer
@@ -134,7 +136,7 @@
     /**
      * Helper for creating HTML nodes that can have their content updated by executing a callback.
      *
-     * Can be used as a regular or a block helper. The block must define a single HTML element. FIXME outdated
+     * Can be used as a regular or a block helper. The block must define one or more HTML nodes. // TODO text node detecting is flaky
      * When used as a regular helper, or if the block contents are omitted, behaves as if used in block mode with the content set to '<div></div>'.
      *
      * Note: using this helper makes sense only for HTML content intended to be viewed in a DOM.
@@ -245,6 +247,10 @@
     }
     Handlebars.registerHelper('element', elementHelper);
 
+    /*
+     * Utilities
+     */
+
     /**
      * Reads property from object. Supports reading nested properties with dot or bracket notation.
      */
@@ -321,7 +327,7 @@
             target.setAttribute(a.name, a.value);
         }
     }
-    
+
     return {
         createRenderer:createRenderer,
         getModelRenderer:getModelRenderer,
