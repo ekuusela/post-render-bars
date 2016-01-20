@@ -8,8 +8,11 @@
         <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
         <link href="https://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" rel="stylesheet" type="text/css">
 
+        <script src="../parseHtml.js"></script>
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
+        <script src="../helpers.js"></script>
+        <script src="../jQueryHelpers.js"></script>
         <style>
             body { font-family: sans-serif; font-size: 16px; }
             code { font-size: 14px; }
@@ -86,7 +89,7 @@
             templates['ajax-template'] = Handlebars.compile($('#ajax-template').html());
             var context = {
                 url: 'https://baconipsum.com/api/?type=meat-and-filler&sentences=2',
-                loadBacon: postHandlebars.createRenderer()
+                loadBacon: helpers.createRenderer()
             };
             $('#ajax-result').html(templates['ajax-template'](context));
 

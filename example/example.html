@@ -4,8 +4,10 @@
         <script src="lib/handlebars-v4.0.5.js"></script>
 
         <script src="templates/templates.js"></script> <!-- pre-compiled templates -->
+        <script src="../parseHtml.js"></script>
         <script src="../watch.js"></script>
         <script src="../postHandlebars.js"></script>
+        <script src="../helpers.js"></script>
         <style>
             body { font-family: sans-serif; font-size: 16px; }
             code { font-size: 14px; }
@@ -151,7 +153,7 @@
             // Example 3: using renderer helper to update content in a template after rendering it
             Handlebars.templates['dynamic-template'] = Handlebars.compile(document.getElementById('dynamic-template').innerHTML);
             var dynamicContainer = document.getElementById('example3');
-            var timeRenderer = postHandlebars.createRenderer(function() { return new Date(); });
+            var timeRenderer = helpers.createRenderer(function() { return new Date(); });
             dynamicContainer.innerHTML = Handlebars.templates['dynamic-template']({time: timeRenderer});
             setInterval(timeRenderer, 1000);
 
