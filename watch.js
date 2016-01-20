@@ -54,6 +54,7 @@
             return function(records) {
                 var elements = allAddedNodes(records).filter(function(node) {
                     if (node.nodeType === 3) {
+                        // TODO detect text in the middle of the value and split node to multiple text nodes
                         return node.nodeValue.substr(0, identifier.length) === identifier;
                     } else {
                         return node.classList.contains(identifier);

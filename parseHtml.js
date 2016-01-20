@@ -16,7 +16,7 @@
     }
 }(this, function() {
     'use strict';
-    
+
     // TODO use this wrapmap to be fix parsing html when it comes to elements that can't appear just anywhere
     var wrapMap = {
 
@@ -32,7 +32,7 @@
     wrapMap.optgroup = wrapMap.option;
     wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
     wrapMap.th = wrapMap.td;
-    
+
     var parseHtml = function(str) {
         if (str === '') {
             return [document.createTextNode('')];
@@ -41,6 +41,6 @@
         tmp.body.innerHTML = str;
         return tmp.body.childNodes;
     };
-    
+
     return parseHtml;
 }));
