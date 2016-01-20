@@ -63,6 +63,7 @@
         <p>Provides the same possibilities as the renderer helper but requires less code to setup.</p>
         <div id="model-binding-result" class="result"></div>
         <script id="model-binding-template" type="text/x-handlebars-template">
+            {{renderer textRenderer}}
 
             values from context:
             {{> fancy-button button=button}}
@@ -170,6 +171,7 @@
             var modelBindingContainer = document.getElementById('model-binding-result');
             var obj = {nested: '', list: [{text: 'update'}, {text: 'yes'}, {text: 'go ahead'}]};
             var context = {
+                textRenderer: helpers.createRenderer(),
                 one: 'value one',
                 two: 'value two',
                 buttonDetails: {action: 'Update'},
@@ -185,8 +187,10 @@
                     });
                 }
             };
+            var executed = Handlebars.templates['model-binding-template'](context);
+            context.textRenderer('changed text');
 
-            modelBindingContainer.innerHTML = Handlebars.templates['model-binding-template'](context);
+            modelBindingContainer.innerHTML = executed;
             context.model('date');
 
             context.model('two', 'new value for two');
