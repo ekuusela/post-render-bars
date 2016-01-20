@@ -27,7 +27,32 @@
                 assert.ok(fixture.html() === 'changed', 'node reference is intact');
                 done();
             });
+            setTimeout(function() { assert.ok(false, 'watch timed out') }, 500)
             fixture.append(text);
+        });
+
+        QUnit.test('watch for a single, initially empty, text node', function(assert) {
+            var done = assert.async();
+            var text = watch.forHtml('', function(node) {
+                assert.ok(fixture.html() === '', 'appended text is unaltered');
+                node.nodeValue = 'changed';
+                assert.ok(fixture.html() === 'changed', 'node reference is intact');
+                done();
+            });
+            setTimeout(function() { assert.ok(false, 'watch timed out') }, 500)
+            fixture.append(text);
+        });
+
+        QUnit.test('watch for text in between text', function(assert) {
+            var done = assert.async();
+            var text = watch.forHtml('text node', function(node) {
+                assert.ok(fixture.html() === 'other text text node more text', 'appended text is unaltered');
+                node.nodeValue = 'changed';
+                assert.ok(fixture.html() === 'other text changed more text', 'node reference is intact');
+                done();
+            });
+            setTimeout(function() { assert.ok(false, 'watch timed out') }, 500)
+            fixture.append('other text ' + text + ' more text');
         });
 
         QUnit.test('nested watch triggers both callbacks', function(assert) {
