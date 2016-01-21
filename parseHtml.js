@@ -17,7 +17,7 @@
 }(this, function() {
     'use strict';
 
-    // TODO use this wrapmap to be fix parsing html when it comes to elements that can't appear just anywhere
+    // TODO use this wrapmap copied from jquery to be fix parsing html when it comes to elements that can't appear just anywhere
     var wrapMap = {
 
         option: [ 1, "<select multiple='multiple'>", "</select>" ],
