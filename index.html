@@ -51,7 +51,9 @@
 
 <p>Uses MutationObserver, see webcomponents-lite for a polyfill.</p>
 
-<p><strong>See <a href="http://ekuusela.github.io/post-render-bars/example/example.html">example.html for a demo</a> and usage examples.</strong> Here's a shortened one using the renderer helper:</p>
+<p><strong>See <a href="http://ekuusela.github.io/post-render-bars/example/example.html">example.html for a demo</a> and usage examples.</strong> There's also a <a href="https://jsfiddle.net/ekuusela/suurxkot/">JSFiddle</a> if you wish to quickly try it yourself.</p>
+
+<p>Here's a shortened example for using the renderer helper:</p>
 
 <p>template:</p>
 
@@ -69,12 +71,17 @@
 <h2>
 <a id="posthandlebarsjs" class="anchor" href="#posthandlebarsjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>postHandlebars.js</h2>
 
-<p>Module for triggering functions after Handlebars templates or partials are rendered or added to the document. Also defines helpers that utilize watch.js and post rendering functions.</p>
+<p>Module for triggering functions after Handlebars templates or partials are rendered or added to the document.</p>
 
 <pre><code>// assume we have a pre-compiled template called 'content'
 postHandlebars.registerPostRender('content', function(str) { return str.toUpperCase(); });
 console.log(Handlebars.templates['content']({body: 'here is the content'})); // outputs the rendered template in all capitals
 </code></pre>
+
+<h2>
+<a id="helpersjs-and-jqueryhelpersjs" class="anchor" href="#helpersjs-and-jqueryhelpersjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>helpers.js and jQueryHelpers.js</h2>
+
+<p>Defines helpers that utilize watch.js.</p>
 
 <h2>
 <a id="watchjs" class="anchor" href="#watchjs" aria-hidden="true"><span class="octicon octicon-link"></span></a>watch.js</h2>
