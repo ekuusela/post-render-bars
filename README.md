@@ -33,11 +33,15 @@ js:
 
 ##postHandlebars.js
 
-Module for triggering functions after Handlebars templates or partials are rendered or added to the document. Also defines helpers that utilize watch.js and post rendering functions.
+Module for triggering functions after Handlebars templates or partials are rendered or added to the document.
 
     // assume we have a pre-compiled template called 'content'
     postHandlebars.registerPostRender('content', function(str) { return str.toUpperCase(); });
     console.log(Handlebars.templates['content']({body: 'here is the content'})); // outputs the rendered template in all capitals
+
+##helpers.js and jQueryHelpers.js
+
+Defines helpers that utilize watch.js.
 
 ##watch.js
 
