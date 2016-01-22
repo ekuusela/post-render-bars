@@ -16,7 +16,7 @@ Dependencies:
 
 Uses MutationObserver, see webcomponents-lite for a polyfill.
 
-**See [example.html for a demo](http://ekuusela.github.io/post-render-bars/example/example.html) and usage examples.** There's also a [JSFiddle](https://jsfiddle.net/ekuusela/suurxkot/) if you wish to quickly try it yourself.
+**See [example.html for a demo](http://ekuusela.github.io/post-render-bars/example/example.html) and usage examples.** There's also a [JSFiddle](https://jsfiddle.net/ekuusela/a18fxLyo/) if you wish to quickly try it yourself.
 
 Here's a shortened example for using the renderer helper:
 
