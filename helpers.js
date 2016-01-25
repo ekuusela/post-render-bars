@@ -19,7 +19,7 @@
 }(this, function(Handlebars, watch, parseHtml) {
     'use strict';
 
-   /**
+    /**
      * Creates and returns a renderer function to be used together with the renderer helper.
      *
      * Pass in the renderer to a Handlebars template and use it as an argument for the renderer helper.

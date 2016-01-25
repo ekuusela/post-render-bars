@@ -117,8 +117,6 @@
         registerPostRender(templateName, activator);
     }
 
-
-
     return {
         registerActivator:registerActivator,
         registerPostRender:registerPostRender,
