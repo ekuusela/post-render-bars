@@ -19,12 +19,17 @@
     <script src="../node_modules/qunitjs/qunit/qunit.js"></script>
     <script type="text/javascript">
         var fixture = $('#qunit-fixture');
+        QUnit.test('parse table cell', function(assert) {
+            var node = parseHtml('<td>cell</td>');
+            assert.equal(node.outerHTML, '<td>cell</td>', 'parsed html matches');
+        });
+
         QUnit.test('watch for a single text node', function(assert) {
             var done = assert.async();
             var text = watch.forHtml('text node', function(node) {
-                assert.ok(fixture.html() === 'text node', 'appended text is unaltered');
+                assert.equal(fixture.html(), 'text node', 'appended text is unaltered');
                 node.nodeValue = 'changed';
-                assert.ok(fixture.html() === 'changed', 'node reference is intact');
+                assert.equal(fixture.html(), 'changed', 'node reference is intact');
                 done();
             });
             setTimeout(function() {
@@ -37,9 +42,9 @@
         QUnit.test('watch for a single, initially empty, text node', function(assert) {
             var done = assert.async();
             var text = watch.forHtml('', function(node) {
-                assert.ok(fixture.html() === '', 'appended text is unaltered');
+                assert.equal(fixture.html(), '', 'appended text is unaltered');
                 node.nodeValue = 'changed';
-                assert.ok(fixture.html() === 'changed', 'node reference is intact');
+                assert.equal(fixture.html(), 'changed', 'node reference is intact');
                 done();
             });
             setTimeout(function() {
@@ -52,9 +57,9 @@
         QUnit.test('watch for text in between text', function(assert) {
             var done = assert.async();
             var text = watch.forHtml('text node', function(node) {
-                assert.ok(fixture.html() === 'other text text node more text', 'appended text is unaltered');
+                assert.equal(fixture.html(), 'other text text node more text', 'appended text is unaltered');
                 node.nodeValue = 'changed';
-                assert.ok(fixture.html() === 'other text changed more text', 'node reference is intact');
+                assert.equal(fixture.html(), 'other text changed more text', 'node reference is intact');
                 done();
             });
             setTimeout(function() {
