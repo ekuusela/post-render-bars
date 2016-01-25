@@ -7,7 +7,7 @@
     <!-- polyfill for MutationObserver -->
     <script src="../example/lib/webcomponents-lite.min.js"></script>
     <script src="../node_modules/handlebars/dist/handlebars.js"></script>
-    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://code.jquery.com/jquery-2.1.4.js"></script>
     <script src="../parseHtml.js"></script>
     <script src="../watch.js"></script>
     <script src="../postHandlebars.js"></script>
@@ -19,9 +19,22 @@
     <script src="../node_modules/qunitjs/qunit/qunit.js"></script>
     <script type="text/javascript">
         var fixture = $('#qunit-fixture');
+        QUnit.test('parse div', function(assert) {
+            var div = parseHtml('<div>div</div>')[0];
+            assert.equal(div.outerHTML, '<div>div</div>', 'parsed html matches');
+        });
+
         QUnit.test('parse table cell', function(assert) {
-            var node = parseHtml('<td>cell</td>');
-            assert.equal(node.outerHTML, '<td>cell</td>', 'parsed html matches');
+            var td = parseHtml('<td>cell</td>')[0];
+            assert.equal(td.outerHTML, '<td>cell</td>', 'parsed html matches');
+
+            var tr = parseHtml('<tr></tr>')[0];
+            assert.equal(tr.outerHTML, '<tr></tr>', 'parsed html matches');
+        });
+
+        QUnit.test('parse text node', function(assert) {
+            var textNode = parseHtml('text')[0];
+            assert.equal(textNode.textContent, 'text');
         });
 
         QUnit.test('watch for a single text node', function(assert) {

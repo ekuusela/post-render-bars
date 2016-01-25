@@ -1,4 +1,6 @@
 /**
+ * Function for parsing html strings to DOM nodes. Borrows heavily from jQuery.
+ *
  * @author Eero Kuusela
  */
  (function (root, factory) {
@@ -17,29 +19,48 @@
 }(this, function() {
     'use strict';
 
-    // TODO use this wrapmap copied from jquery to be fix parsing html when it comes to elements that can't appear just anywhere
+    var rxhtmlTag = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/gi;
+    var rtagName = /<([\w:]+)/;
+
     var wrapMap = {
+        option: [ 1, '<select multiple="multiple">', '</select>' ],
+        thead: [ 1, '<table>', '</table>' ],
+        col: [ 2, '<table><colgroup>', '</colgroup></table>' ],
+        tr: [ 2, '<table><tbody>', '</tbody></table>' ],
+        td: [ 3, '<table><tbody><tr>', '</tr></tbody></table>' ],
 
-        option: [ 1, "<select multiple='multiple'>", "</select>" ],
-        thead: [ 1, "<table>", "</table>" ],
-        col: [ 2, "<table><colgroup>", "</colgroup></table>" ],
-        tr: [ 2, "<table><tbody>", "</tbody></table>" ],
-        td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ],
-
-        _default: [ 0, "", "" ]
+        _default: [ 0, '', '' ]
     };
 
     wrapMap.optgroup = wrapMap.option;
     wrapMap.tbody = wrapMap.tfoot = wrapMap.colgroup = wrapMap.caption = wrapMap.thead;
     wrapMap.th = wrapMap.td;
 
+    /**
+     * Returns an array of nodes.
+     */
     var parseHtml = function(str) {
         if (str === '') {
             return [document.createTextNode('')];
         }
-        var tmp = document.implementation.createHTMLDocument();
-        tmp.body.innerHTML = str;
-        return tmp.body.childNodes;
+        var fragment = document.createDocumentFragment();
+        var tempParent = fragment.appendChild(document.createElement('div'));
+
+        var tagName = ( rtagName.exec( str ) || ['', ''] )[1].toLowerCase();
+        wrap = wrapMap[ tagName ] || wrapMap._default;
+        tempParent.innerHTML = wrap[1] + str.replace( rxhtmlTag, '<$1></$2>' ) + wrap[2];
+
+        // Descend through wrappers to the right content
+        var depth = wrap[0];
+        while ( depth-- ) {
+            tempParent = tempParent.lastChild;
+        }
+        var result = Array.prototype.slice.call(tempParent.childNodes);
+
+        // Ensure the created nodes are orphaned
+        fragment.firstChild.textContent = '';
+
+        return result;
     };
 
     return parseHtml;

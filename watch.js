@@ -45,7 +45,7 @@
         html = html.trim();
         var nodes = parseHtml(html);
 
-        Array.prototype.forEach.call(nodes, function(node) {
+        nodes.forEach(function(node) {
             addIdentifier(node, identifier);
         });
         var html = nodesToStr(nodes);
@@ -154,7 +154,7 @@
      * Converts the given list of nodes to a string.
      */
     function nodesToStr(nodes) {
-        return Array.prototype.reduce.call(nodes, function(prev, node) {
+        return nodes.reduce(function(prev, node) {
             return prev + (node.nodeType === 3 ? node.nodeValue : node.outerHTML);
         }, '');
     }
